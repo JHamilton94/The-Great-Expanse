@@ -20,7 +20,7 @@ orbiting the stars, a ship for the player to
 control, and a GlobalSceneManager to store global 
 variables. 
 
-*Rules for all game objects*
+**Rules for all game objects**
 >1. Most components come with a debug mode 
 checkbox, toggle it to see detailed visual information 
 about the component.
@@ -30,7 +30,7 @@ things could happen if they do.
 Some components might throw exceptions if a public 
 attribute field is left blank.
 
-*The Black Hole Game Object*
+**The Black Hole Game Object**
 >Components: Sprite Renderer, Black Hole Elements, 
 Massive Body Elements, Black Hole Behavior, Gravity 
 Elements, Black Hole Massive Body Behavior, Sprite 
@@ -39,28 +39,28 @@ Renderer.
 >Best practice is to place it at the origin
 >Must be given the tag "MassiveBody"
 
-*The Star Game object*
->Components: Star Behavior, Massive Body Elements,
+**The Star Game object**
+- Components: Star Behavior, Massive Body Elements,
 Star Elements, Gravity Elements, Star Gravity Behavior,
 Star Massive Body Behavior, Sprite Renderer.
->Must be given the tag "MassiveBody"
->Can create as many stars as your computer can handle.
+- Must be given the tag "MassiveBody"
+- Can create as many stars as your computer can handle.
 
-*The Planet Game Object*
->Components: Planet Behavior, Massive Body Elements,
+**The Planet Game Object**
+- Components: Planet Behavior, Massive Body Elements,
 Planet Elements, Gravity Elements, Planet Gravity Behavior,
 Planet Massive Body Behavior, Sprite Renderer.
->Must be given the tag "MassiveBody"
+- Must be given the tag "MassiveBody"
 
-*The Ship Game Object*
->Components: Input Controller, Sprite Renderer, Gravity
+**The Ship Game Object**
+- Components: Input Controller, Sprite Renderer, Gravity
 Elements, Ship Gravity Behavior.
->No tag
->There can only be one
+- No tag
+- There can only be one
 
-*Global Scene Manager*
->Components: Global Elements.
->It's single component is a little special, the attributes
+**Global Scene Manager**
+- Components: Global Elements.
+- It's single component is a little special, the attributes
 contained in GlobalElements.cs are static, meaning they 
 wont show up in Unity's inspector and must be modified
 from visual studio. 
