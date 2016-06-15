@@ -31,13 +31,13 @@ Some components might throw exceptions if a public
 attribute field is left blank.
 
 **The Black Hole Game Object**
->Components: Sprite Renderer, Black Hole Elements, 
+- Components: Sprite Renderer, Black Hole Elements, 
 Massive Body Elements, Black Hole Behavior, Gravity 
 Elements, Black Hole Massive Body Behavior, Sprite 
 Renderer.
->There can only be one
->Best practice is to place it at the origin
->Must be given the tag "MassiveBody"
+- There can only be one
+- Best practice is to place it at the origin
+- Must be given the tag "MassiveBody"
 
 **The Star Game object**
 - Components: Star Behavior, Massive Body Elements,
