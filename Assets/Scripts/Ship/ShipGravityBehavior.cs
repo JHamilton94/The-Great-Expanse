@@ -491,11 +491,14 @@ public class ShipGravityBehavior : MonoBehaviour
         if (clockwise)
         {
             returnMeanAnomaly = anomalyAtEpoch - (orbitalSpeed * timeStep);
-            returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
         }
         else
         {
             returnMeanAnomaly = anomalyAtEpoch + (orbitalSpeed * timeStep);
+        }
+
+        if (orbitType != OrbitTypes.hyperbolic && orbitType != OrbitTypes.parabolic)
+        {
             returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
         }
         return returnMeanAnomaly;
