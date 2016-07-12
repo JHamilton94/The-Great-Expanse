@@ -6,16 +6,28 @@ public class InputController : MonoBehaviour {
     private Vector2 thrust;
     private double force;
     private ShipGravityBehavior shipGravityBehavior;
+    private NodeManager nodeManager;
+
 
 	// Use this for initialization
 	void Start () {
         force = 0;
         shipGravityBehavior = GetComponent<ShipGravityBehavior>();
+        nodeManager = GetComponent<NodeManager>();
 	}
 	
 	// Update is called once per frame
 	void FixedUpdate () {
         calculateThrustVector();
+
+        //hovering over orbit
+        nodeManager.hover(Camera.main.ScreenToWorldPoint(Input.mousePosition));
+
+        //Clicking a position in an orbit
+        if (Input.GetMouseButton(0))
+        {
+            //nodeManager.createNode();
+        }
 
         //Time manipulation
         if (Input.GetButton("Fire2"))
@@ -38,6 +50,9 @@ public class InputController : MonoBehaviour {
             shipGravityBehavior.applyThrust(thrust);
             force = 0;
         }
+
+        //Camera zoom
+
 	}
 
     private void calculateThrustVector()
