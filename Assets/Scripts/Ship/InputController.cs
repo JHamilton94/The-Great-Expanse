@@ -5,6 +5,7 @@ public class InputController : MonoBehaviour {
 
     private Vector2 thrust;
     private double force;
+    private double oldTimeStep;
     private ShipGravityBehavior shipGravityBehavior;
     private NodeManager nodeManager;
 
@@ -26,7 +27,7 @@ public class InputController : MonoBehaviour {
         //Clicking a position in an orbit
         if (Input.GetMouseButton(0))
         {
-            //nodeManager.createNode();
+            nodeManager.createNode();
         }
 
         //Time manipulation
@@ -52,7 +53,23 @@ public class InputController : MonoBehaviour {
         }
 
         //Camera zoom
-
+        if (Input.GetAxis("RightVertical") > 0.01f)
+        {
+            Camera.main.orthographicSize += 1f;
+        }
+        if(Input.GetAxis("RightVertical") < -0.01f)
+        {
+            Camera.main.orthographicSize -= 1f;
+        }
+        
+        if (Input.GetButtonDown("Jump") && GlobalElements.timeStep != 0)
+        {   
+            oldTimeStep = GlobalElements.timeStep;
+            GlobalElements.timeStep = 0;
+        }
+        else if(Input.GetButtonDown("Jump") && GlobalElements.timeStep == 0){
+            GlobalElements.timeStep = oldTimeStep;
+        }
 	}
 
     private void calculateThrustVector()

@@ -502,6 +502,7 @@ GameObject:
   - 212: {fileID: 1436866971}
   - 114: {fileID: 1436866968}
   - 114: {fileID: 1436866972}
+  - 114: {fileID: 1436866973}
   m_Layer: 0
   m_Name: Ship
   m_TagString: Untagged
@@ -520,7 +521,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 516d02cf52b61b840a03a30cd01008ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  velocity: {x: 10, y: 0}
+  velocity: {x: 2, y: 0}
   massiveBody: {fileID: 635663950}
   gravitationalType: 0
 --- !u!4 &1436866969
@@ -590,6 +591,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   debugMode: 1
   gravityElements: {fileID: 0}
+--- !u!114 &1436866973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1436866967}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79b056742b03b39458ce607a8a176d24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1461878758
 GameObject:
   m_ObjectHideFlags: 0

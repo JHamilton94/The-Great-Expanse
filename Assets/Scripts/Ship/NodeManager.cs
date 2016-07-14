@@ -4,49 +4,48 @@ using System;
 
 public class NodeManager : MonoBehaviour {
 
-    private Node node;
+    //World information
     private GravityElements shipElements;
     private ShipGravityBehavior ship;
-    private float tolerance;
 
-    private Vector2 locationVector;
-    private double locationAltitude;
-    private double trueAnomaly;
-    private double desiredAltitude;
-
+    //What we're making here
+    private Node node;
+    
+    private float hoverDistanceTolerance;
     private bool hovering;
+
+    private Vector2 mouseLocation;
+    private double mouseAltitude;
+    private double mouseTrueAnomaly;
+    private double orbitalAltitude;
 
 	// Use this for initialization
 	void Start () {
         node = null;
         shipElements = GetComponent<GravityElements>();
         ship = GetComponent<ShipGravityBehavior>();
-        tolerance = 1f;
+        hoverDistanceTolerance = 1f;
         hovering = false;
     }
 
 	void FixedUpdate () {
-        //Check if node is null
-        if (node != null)
-        {
-            //check if we've reached the node
-            if(shipElements.MeanAnomaly > node.getMeanAnomaly() - tolerance 
-                || shipElements.MeanAnomaly < node.getMeanAnomaly() + tolerance)
-            {
-                ship.applyThrust(node.getThrustVector());
-                node = null;
-            }
-        }	    
+        //Fuck all is happening here... for now
 	}
 
     public void hover(Vector2 mouseLocation)
     {
-        locationVector = mouseLocation - convertToVec2(shipElements.massiveBody.transform.position);
-        locationAltitude = locationVector.magnitude;
-        trueAnomaly = calculateTrueAnomaly(shipElements.Eccentricity, mouseLocation - shipElements.GlobalTransformationVector, shipElements.TowardsPerigee, shipElements.Clockwise, shipElements.OrbitType);
-        desiredAltitude = calculateAltitude(shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.SemiLatusRectum, trueAnomaly, shipElements.OrbitType);
+        this.mouseLocation = mouseLocation - convertToVec2(shipElements.massiveBody.transform.position);
+        mouseAltitude = this.mouseLocation.magnitude;
+        mouseTrueAnomaly = Math.Atan2(this.mouseLocation.y, this.mouseLocation.x) - 
+            Math.Atan2(shipElements.Eccentricity.y, shipElements.Eccentricity.x);
+        if(mouseTrueAnomaly > Math.PI)
+        {
+            mouseTrueAnomaly -= 2 * Math.PI;
+        }
+        
+        orbitalAltitude = calculateAltitude(shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.SemiLatusRectum, mouseTrueAnomaly, shipElements.OrbitType);
 
-        if(locationAltitude > desiredAltitude -tolerance && locationAltitude < desiredAltitude + tolerance)
+        if(mouseAltitude > orbitalAltitude - hoverDistanceTolerance && mouseAltitude < orbitalAltitude + hoverDistanceTolerance)
         {
             hovering = true;
         }
@@ -57,9 +56,19 @@ public class NodeManager : MonoBehaviour {
 
     }
 
-    public void createNode(Vector2 thrustVector, float meanAnomaly)
+    public void createNode()
     {
-
+        if (hovering)
+        {
+            Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle), 
+                (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized * 
+                (float)orbitalAltitude;
+            node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
+        }
+        else
+        {
+            return;
+        }
     }
 
     private double calculateTrueAnomaly(Vector2 eccentricity, Vector2 position, bool towardsPerigee, bool clockwise, OrbitTypes orbitType)
@@ -154,11 +163,15 @@ public class NodeManager : MonoBehaviour {
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawLine(locationVector+shipElements.GlobalTransformationVector, shipElements.massiveBody.transform.position);
         if (hovering)
         {
-            Gizmos.DrawSphere((locationVector.normalized * (float)desiredAltitude) + shipElements.GlobalTransformationVector, 1.0f);
+            Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 1.0f);
+        }
+        if (node != null)
+        {
+            Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
         }
 
+        Gizmos.DrawLine(mouseLocation + shipElements.GlobalTransformationVector, shipElements.GlobalTransformationVector);
     }
 }

@@ -3,18 +3,25 @@ using System.Collections;
 
 public class Node {
 
-    private float meanAnomaly;
+    private double trueAnomaly;
     private Vector2 thrustVector;
+    private Vector2 nodePosition;
 
-    public Node(float meanAnomaly, Vector2 thrustVector)
+    public Node(double trueAnomaly, Vector2 thrustVector, Vector2 nodePosition)
     {
-        this.meanAnomaly = meanAnomaly;
+        this.trueAnomaly = trueAnomaly;
         this.thrustVector = thrustVector;
+        this.nodePosition = nodePosition;
     }
     
-    public float getMeanAnomaly()
+    public Vector2 getNodePosition()
     {
-        return meanAnomaly;
+        return nodePosition;
+    }
+
+    public double getTrueAnomaly()
+    {
+        return trueAnomaly;
     }
 
     public Vector2 getThrustVector()
