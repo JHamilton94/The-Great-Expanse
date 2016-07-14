@@ -2,7 +2,7 @@
 using System.Collections;
 using System;
 
-public class StarElements : MonoBehaviour, CelestialBody{
+public class StarElements : MonoBehaviour{
 
     public StarType starType;
     public string starName;

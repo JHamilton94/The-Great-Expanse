@@ -137,7 +137,7 @@ public class StarGravityBehavior : MonoBehaviour
                 if (altitude > massiveBody.GetComponent<MassiveBodyElements>().SphereOfInfluence)
                 {
                     gravityElements.MassiveBody = findInfluencingCelestialBody();
-                    calculateInitialOrbitalElements(convertToVec3(position) - massiveBody.transform.position, velocity);
+                    calculateInitialOrbitalElements(MiscHelperFuncs.convertToVec3(position) - massiveBody.transform.position, velocity);
                 }
                 break;
             default:
@@ -147,7 +147,7 @@ public class StarGravityBehavior : MonoBehaviour
                     Debug.Log("Altitude: " + altitude);
                     Debug.Log("sphere of influence: " + gravityElements.massiveBody.GetComponent<MassiveBodyElements>().SphereOfInfluence);
                     gravityElements.MassiveBody = findInfluencingCelestialBody();
-                    calculateInitialOrbitalElements(convertToVec3(position), velocity + massiveBody.GetComponent<GravityElements>().velocity);
+                    calculateInitialOrbitalElements(MiscHelperFuncs.convertToVec3(position), velocity + massiveBody.GetComponent<GravityElements>().velocity);
                 }
                 break;
         }
@@ -746,11 +746,11 @@ public class StarGravityBehavior : MonoBehaviour
         {
             case OrbitTypes.circular:
                 returnTrueAnomaly = Vector2.Angle(position, Vector2.right);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 break;
             case OrbitTypes.elliptical:
                 returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 if (towardsPerigee)
                 {
                     returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
@@ -765,7 +765,7 @@ public class StarGravityBehavior : MonoBehaviour
                 break;
             case OrbitTypes.hyperbolic:
                 returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 if (clockwise)
                 {
                     if (towardsPerigee)
@@ -799,13 +799,13 @@ public class StarGravityBehavior : MonoBehaviour
         switch (orbitType)
         {
             case OrbitTypes.circular:
-                return (convertToRadians(Vector2.Angle(Vector2.right, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(Vector2.right, velocity)) < Math.PI / 2);
             case OrbitTypes.elliptical:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
             case OrbitTypes.parabolic:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
             case OrbitTypes.hyperbolic:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
         }
         return true;
 
@@ -814,7 +814,7 @@ public class StarGravityBehavior : MonoBehaviour
     private bool clockwiseOrbit(Vector2 position, Vector2 velocity)
     {
         Vector3 crossProduct;
-        crossProduct = Vector3.Cross(convertToVec3(position), convertToVec3(velocity));
+        crossProduct = Vector3.Cross(MiscHelperFuncs.convertToVec3(position), MiscHelperFuncs.convertToVec3(velocity));
         if (crossProduct.z > 0)
         {
             return false;
@@ -989,15 +989,6 @@ public class StarGravityBehavior : MonoBehaviour
         return angleToWrap;
     }
 
-    private double convertToRadians(double degrees)
-    {
-        return (degrees * Math.PI) / 180;
-    }
-
-    private Vector3 convertToVec3(Vector2 inVec)
-    {
-        return new Vector3(inVec.x, inVec.y, 0.0f);
-    }
 
     public void OnDrawGizmos()
     {

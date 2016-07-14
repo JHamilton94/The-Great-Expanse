@@ -60,7 +60,7 @@ public class PlanetGravityBehavior : MonoBehaviour
         {
             //quick and dirty calculation of altitude
             double mu = massiveBodies[i].GetComponent<MassiveBodyElements>().mass * GlobalElements.GRAV_CONST;
-            Vector2 relativePosition = position - convertToVec2(massiveBodies[i].transform.position);
+            Vector2 relativePosition = position - MiscHelperFuncs.convertToVec2(massiveBodies[i].transform.position);
             Vector2 relativeVelocity = velocity + massiveBodies[i].GetComponent<GravityElements>().velocity;
             Vector2 eccentricity = calculateEccentricity(relativePosition, relativeVelocity, mu);
             OrbitTypes orbitType = determineOrbitType(eccentricity);
@@ -69,7 +69,7 @@ public class PlanetGravityBehavior : MonoBehaviour
             Vector2 perigee = calculatePerigee(semiMajorAxis, eccentricity, orbitType);
             double semiLatusRectum = calculateSemiLatusRectum(semiMajorAxis, eccentricity, perigee, orbitType); //semiMajorAxis * (1 - Math.Pow(eccentricity.magnitude, 2));
             double trueAnomaly = Vector2.Angle(relativePosition, eccentricity);
-            trueAnomaly = convertToRadians(trueAnomaly);
+            trueAnomaly = MiscHelperFuncs.convertToRadians(trueAnomaly);
             trueAnomaly = Math.Abs(wrapAngle(trueAnomaly));
             double altitude = Vector2.Distance(massiveBodies[i].transform.position, transform.position);//semiLatusRectum / (1 + eccentricity.magnitude * Math.Cos(trueAnomaly));
 
@@ -723,11 +723,11 @@ public class PlanetGravityBehavior : MonoBehaviour
         {
             case OrbitTypes.circular:
                 returnTrueAnomaly = Vector2.Angle(position, Vector2.right);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 break;
             case OrbitTypes.elliptical:
                 returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 if (towardsPerigee)
                 {
                     returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
@@ -742,7 +742,7 @@ public class PlanetGravityBehavior : MonoBehaviour
                 break;
             case OrbitTypes.hyperbolic:
                 returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
+                returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
                 if (clockwise)
                 {
                     if (towardsPerigee)
@@ -776,13 +776,13 @@ public class PlanetGravityBehavior : MonoBehaviour
         switch (orbitType)
         {
             case OrbitTypes.circular:
-                return (convertToRadians(Vector2.Angle(Vector2.right, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(Vector2.right, velocity)) < Math.PI / 2);
             case OrbitTypes.elliptical:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
             case OrbitTypes.parabolic:
                 return true;
             case OrbitTypes.hyperbolic:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
+                return (MiscHelperFuncs.convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
         }
         return true;
 
@@ -791,7 +791,7 @@ public class PlanetGravityBehavior : MonoBehaviour
     private bool clockwiseOrbit(Vector2 position, Vector2 velocity)
     {
         Vector3 crossProduct;
-        crossProduct = Vector3.Cross(convertToVec3(position), convertToVec3(velocity));
+        crossProduct = Vector3.Cross(MiscHelperFuncs.convertToVec3(position), MiscHelperFuncs.convertToVec3(velocity));
         if (crossProduct.z > 0)
         {
             return false;
@@ -966,21 +966,6 @@ public class PlanetGravityBehavior : MonoBehaviour
         }
 
         return angleToWrap;
-    }
-
-    private double convertToRadians(double degrees)
-    {
-        return (degrees * Math.PI) / 180;
-    }
-
-    private Vector3 convertToVec3(Vector2 inVec)
-    {
-        return new Vector3(inVec.x, inVec.y, 0.0f);
-    }
-
-    private Vector2 convertToVec2(Vector3 inVec)
-    {
-        return new Vector2(inVec.x, inVec.y);
     }
 
     public void OnDrawGizmos()
