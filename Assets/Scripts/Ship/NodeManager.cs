@@ -19,6 +19,8 @@ public class NodeManager : MonoBehaviour {
     private double mouseTrueAnomaly;
     private double orbitalAltitude;
 
+    private double lastTrueAnomaly;
+
 	// Use this for initialization
 	void Start () {
         node = null;
@@ -26,10 +28,32 @@ public class NodeManager : MonoBehaviour {
         ship = GetComponent<ShipGravityBehavior>();
         hoverDistanceTolerance = 1f;
         hovering = false;
+        lastTrueAnomaly = shipElements.TrueAnomaly;
     }
 
 	void FixedUpdate () {
-        //Fuck all is happening here... for now
+        //Have we arrived at a node?
+        if (node != null)
+        {
+            if (shipElements.Clockwise)
+            {
+                if (lastTrueAnomaly > node.getTrueAnomaly() && shipElements.TrueAnomaly < node.getTrueAnomaly())
+                {
+                    Debug.Log("Reached node, deleting node");
+                    node = null;
+                }
+            }
+            else
+            {
+                if (lastTrueAnomaly < node.getTrueAnomaly() && shipElements.TrueAnomaly > node.getTrueAnomaly())
+                {
+                    Debug.Log("Reached node, deleting node");
+                    node = null;
+                }
+            }
+        }
+
+        lastTrueAnomaly = shipElements.TrueAnomaly;
 	}
 
     public void hover(Vector2 mouseLocation)
@@ -69,61 +93,6 @@ public class NodeManager : MonoBehaviour {
         {
             return;
         }
-    }
-
-    private double calculateTrueAnomaly(Vector2 eccentricity, Vector2 position, bool towardsPerigee, bool clockwise, OrbitTypes orbitType)
-    {
-        double returnTrueAnomaly = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnTrueAnomaly = Vector2.Angle(position, Vector2.right);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                break;
-            case OrbitTypes.elliptical:
-                returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                if (towardsPerigee)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                }
-                else
-                {
-                    returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                }
-
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                if (clockwise)
-                {
-                    if (towardsPerigee)
-                    {
-                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                    }
-                    else
-                    {
-                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                    }
-                }
-                else
-                {
-                    if (towardsPerigee)
-                    {
-                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                    }
-                    else
-                    {
-                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                    }
-                }
-                break;
-        }
-
-        return returnTrueAnomaly;
     }
 
     private double calculateAltitude(Vector2 eccentricity, double semiMajorAxis, double semiLatusRectum, double trueAnomaly, OrbitTypes orbitType)
@@ -171,7 +140,9 @@ public class NodeManager : MonoBehaviour {
         {
             Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
         }
-
-        Gizmos.DrawLine(mouseLocation + shipElements.GlobalTransformationVector, shipElements.GlobalTransformationVector);
+        if (shipElements != null)
+        {
+            Gizmos.DrawLine(mouseLocation + shipElements.GlobalTransformationVector, shipElements.GlobalTransformationVector);
+        }
     }
 }
