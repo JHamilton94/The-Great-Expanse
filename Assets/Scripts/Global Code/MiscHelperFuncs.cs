@@ -17,4 +17,22 @@ public static class MiscHelperFuncs {
     {
         return new Vector2(inVec.x, inVec.y);
     }
+
+    public static double wrapAngle(double angleToWrap)
+    {
+        if (angleToWrap > Math.PI)
+        {
+            angleToWrap -= Math.PI;
+            angleToWrap = -Math.PI + angleToWrap;
+        }
+
+        if (angleToWrap < -Math.PI)
+        {
+            angleToWrap += Math.PI;
+            angleToWrap = Math.Abs(angleToWrap);
+            angleToWrap = Math.PI - angleToWrap;
+        }
+
+        return angleToWrap;
+    } 
 }

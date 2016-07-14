@@ -58,7 +58,7 @@ public class NodeManager : MonoBehaviour {
 
     public void hover(Vector2 mouseLocation)
     {
-        this.mouseLocation = mouseLocation - convertToVec2(shipElements.massiveBody.transform.position);
+        this.mouseLocation = mouseLocation - MiscHelperFuncs.convertToVec2(shipElements.massiveBody.transform.position);
         mouseAltitude = this.mouseLocation.magnitude;
         mouseTrueAnomaly = Math.Atan2(this.mouseLocation.y, this.mouseLocation.x) - 
             Math.Atan2(shipElements.Eccentricity.y, shipElements.Eccentricity.x);
@@ -67,7 +67,7 @@ public class NodeManager : MonoBehaviour {
             mouseTrueAnomaly -= 2 * Math.PI;
         }
         
-        orbitalAltitude = calculateAltitude(shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.SemiLatusRectum, mouseTrueAnomaly, shipElements.OrbitType);
+        orbitalAltitude = OrbitalHelper.calculateAltitude(shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.SemiLatusRectum, mouseTrueAnomaly, shipElements.OrbitType);
 
         if(mouseAltitude > orbitalAltitude - hoverDistanceTolerance && mouseAltitude < orbitalAltitude + hoverDistanceTolerance)
         {
@@ -94,41 +94,7 @@ public class NodeManager : MonoBehaviour {
             return;
         }
     }
-
-    private double calculateAltitude(Vector2 eccentricity, double semiMajorAxis, double semiLatusRectum, double trueAnomaly, OrbitTypes orbitType)
-    {
-        double returnAltitude = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.elliptical:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.parabolic:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.hyperbolic:
-                returnAltitude = semiLatusRectum / (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-        }
-        return returnAltitude;
-    }
-
-    private double convertToRadians(double degrees)
-    {
-        return (degrees * Math.PI) / 180;
-    }
-
-    private Vector2 convertToVec2(Vector3 inVec)
-    {
-        return new Vector2(inVec.x, inVec.y);
-    }
-
+    
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
