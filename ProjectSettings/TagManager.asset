@@ -52,3 +52,6 @@ TagManager:
   - name: Celestial bodies
     uniqueID: 2659469529
     locked: 0
+  - name: GUI
+    uniqueID: 2212697275
+    locked: 0

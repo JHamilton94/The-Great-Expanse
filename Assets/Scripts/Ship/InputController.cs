@@ -55,11 +55,13 @@ public class InputController : MonoBehaviour {
         //Camera zoom
         if (Input.GetAxis("RightVertical") > 0.01f)
         {
-            Camera.main.orthographicSize += 1f;
+            GlobalElements.zoomLevel += 1;
+            Camera.main.orthographicSize = GlobalElements.zoomLevel;
         }
         if(Input.GetAxis("RightVertical") < -0.01f)
         {
-            Camera.main.orthographicSize -= 1f;
+            GlobalElements.zoomLevel -= 1;
+            Camera.main.orthographicSize = GlobalElements.zoomLevel;
         }
         
         if (Input.GetButtonDown("Jump") && GlobalElements.timeStep != 0)
