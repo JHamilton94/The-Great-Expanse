@@ -13,6 +13,7 @@ public class ShipGraphicalManager : MonoBehaviour {
     private GravityElements shipElements;
     private SpriteRenderer spriteRenderer;
     private LineDrawer lineDrawer;
+
     public Button perigeeButton;
     public Image perigeePlacard;
     public Button apogeeButton;
@@ -33,7 +34,7 @@ public class ShipGraphicalManager : MonoBehaviour {
         float angle = 0;
         while( angle < 2*Math.PI){
             lineDrawer.DrawLine(drawOrbitRadiusHelper(shipElements.Eccentricity, shipElements.GlobalRotationAngle, shipElements.SemiMajorAxis, angle) + shipElements.GlobalTransformationVector, 
-                drawOrbitRadiusHelper(shipElements.Eccentricity, shipElements.GlobalRotationAngle, shipElements.SemiMajorAxis, angle + 0.01f) + shipElements.GlobalTransformationVector);
+                drawOrbitRadiusHelper(shipElements.Eccentricity, shipElements.GlobalRotationAngle, shipElements.SemiMajorAxis, angle + 0.01f) + shipElements.GlobalTransformationVector, Color.red);
             angle += 0.01f;
         }
 
@@ -45,10 +46,11 @@ public class ShipGraphicalManager : MonoBehaviour {
         
         perigeeButton.transform.position = shipElements.GlobalTransformationVector + shipElements.Perigee + offsetVector;
         perigeeButton.transform.localScale = new Vector3(GlobalElements.zoomLevel/ UI_SCALE_CONST, GlobalElements.zoomLevel / UI_SCALE_CONST, 0);
-        
-        
 
-
+        perigeePlacard.transform.position = shipElements.GlobalTransformationVector + shipElements.Perigee + offsetVector;
+        perigeePlacard.transform.localScale = new Vector3(GlobalElements.zoomLevel / UI_SCALE_CONST, GlobalElements.zoomLevel / UI_SCALE_CONST, 0);
+        perigeePlacard.transform.rotation = Quaternion.AngleAxis(Mathf.Atan2(shipElements.Perigee.y, shipElements.Perigee.x) * Mathf.Rad2Deg - 45, Vector3.forward);
+        
         switch (shipElements.OrbitType)
         {
             case OrbitTypes.circular:
@@ -75,9 +77,7 @@ public class ShipGraphicalManager : MonoBehaviour {
         }
         
 
-        perigeePlacard.transform.position = shipElements.GlobalTransformationVector + shipElements.Perigee + offsetVector;
-        perigeePlacard.transform.localScale = new Vector3(GlobalElements.zoomLevel / UI_SCALE_CONST, GlobalElements.zoomLevel / UI_SCALE_CONST, 0);
-        perigeePlacard.transform.rotation = Quaternion.AngleAxis(Mathf.Atan2(shipElements.Perigee.y, shipElements.Perigee.x) * Mathf.Rad2Deg - 45, Vector3.forward);
+        
 
 
         
