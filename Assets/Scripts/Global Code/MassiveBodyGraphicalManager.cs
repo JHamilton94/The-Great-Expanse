@@ -25,8 +25,6 @@ public class MassiveBodyGraphicalManager : MonoBehaviour {
         lineDrawer = Camera.main.GetComponent<LineDrawer>();
         massiveElements = GetComponent<MassiveBodyElements>();
 
-        Debug.Log(Camera.main.transform.position);
-
         switch (gravElements.gravitationalType)
         {
             case GravitationalType.black_hole:

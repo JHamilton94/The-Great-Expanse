@@ -8,3 +8,4 @@ public enum OrbitTypes { circular, elliptical, parabolic, hyperbolic, error };
 public enum StarType { dwarf, giant };
 public enum MassiveBodyType {Planet, Star, Black_Hole }; //The order of these matters, dont change it.
 public enum GravitationalType { ship, planet, star, black_hole};
+public enum ManeuverHandle { nadir, zenith, prograde, retrograde, noManeuver};

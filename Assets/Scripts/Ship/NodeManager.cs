@@ -35,24 +35,26 @@ public class NodeManager : MonoBehaviour {
         //Have we arrived at a node?
         if (node != null)
         {
+            //Have we arrived at a node?
             if (shipElements.Clockwise)
             {
+                //Execute node's maneuver
                 if (lastTrueAnomaly > node.getTrueAnomaly() && shipElements.TrueAnomaly < node.getTrueAnomaly())
                 {
-                    Debug.Log("Reached node, deleting node");
+                    ship.applyThrust(node.getThrustVector());
                     node = null;
                 }
             }
             else
             {
+                //Execute node's maneuver
                 if (lastTrueAnomaly < node.getTrueAnomaly() && shipElements.TrueAnomaly > node.getTrueAnomaly())
                 {
-                    Debug.Log("Reached node, deleting node");
+                    ship.applyThrust(node.getThrustVector());
                     node = null;
                 }
             }
         }
-
         lastTrueAnomaly = shipElements.TrueAnomaly;
 	}
 
@@ -95,20 +97,21 @@ public class NodeManager : MonoBehaviour {
         }
     }
     
+    public Node getNode()
+    {
+        return node;
+    }
+
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         if (hovering)
         {
-            Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 1.0f);
+            //Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 1.0f);
         }
         if (node != null)
         {
-            Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
-        }
-        if (shipElements != null)
-        {
-            Gizmos.DrawLine(mouseLocation + shipElements.GlobalTransformationVector, shipElements.GlobalTransformationVector);
+            //Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
         }
     }
 }

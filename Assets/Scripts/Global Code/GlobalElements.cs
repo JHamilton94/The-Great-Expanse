@@ -6,5 +6,5 @@ public static class GlobalElements{
     public static double timeStep = 0.001;
     public static double GRAV_CONST = 9;
     public static float zoomLevel = 10;
-    
+    public static float UI_SCALE_CONST = 50;
 }

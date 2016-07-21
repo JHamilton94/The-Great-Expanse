@@ -7,12 +7,15 @@ public static class OrbitalHelper {
     {
         switch (orbitType)
         {
-            case OrbitTypes.circular:
-                return double.PositiveInfinity;
-            case OrbitTypes.elliptical:
-                return double.PositiveInfinity;
             case OrbitTypes.parabolic:
-                return double.PositiveInfinity;
+                if (clockwise)
+                {
+                    return timeAtEpoch - timeStep;
+                }
+                else
+                {
+                    return timeAtEpoch + timeStep;
+                }
             case OrbitTypes.hyperbolic:
                 if (clockwise)
                 {
@@ -23,7 +26,14 @@ public static class OrbitalHelper {
                     return timeAtEpoch + timeStep;
                 }
             default:
-                return double.PositiveInfinity;
+                if (clockwise)
+                {
+                    return timeAtEpoch - timeStep;
+                }
+                else
+                {
+                    return timeAtEpoch + timeStep;
+                }
         }
     }
 
@@ -358,13 +368,15 @@ public static class OrbitalHelper {
         switch (orbitType)
         {
             case OrbitTypes.circular:
+                returnTime = Math.Pow((Math.Pow(semiMajorAxis, 3) / mu), 0.5) * ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly);
                 break;
             case OrbitTypes.elliptical:
+                returnTime = Math.Pow((Math.Pow(semiMajorAxis, 3) / mu), 0.5) * ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly);
                 break;
             case OrbitTypes.parabolic:
+                returnTime = Math.Pow((Math.Pow(-semiMajorAxis, 3) / mu), 0.5) * ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly);
                 break;
             case OrbitTypes.hyperbolic:
-                //Fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuck
                 returnTime = Math.Pow((Math.Pow(-semiMajorAxis, 3) / mu), 0.5) * ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly);
                 break;
         }

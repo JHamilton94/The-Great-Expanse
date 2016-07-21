@@ -18,7 +18,6 @@ public class LineDrawer : MonoBehaviour{
     public void clearVertices()
     {
         vertices.Clear();
-
     }
     
     void OnPostRender()
