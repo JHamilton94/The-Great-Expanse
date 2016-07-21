@@ -4,6 +4,7 @@ using System.Collections;
 public class ButtonBehavior : MonoBehaviour {
 
     private InputController ic;
+    
 
 	// Use this for initialization
 	void Start () {
