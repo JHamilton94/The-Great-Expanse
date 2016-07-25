@@ -11,7 +11,7 @@ public class NodeManager : MonoBehaviour {
     private LineDrawer lineDrawer;
 
     //What we're making here
-    private Node node;
+    public Node node;
     
     private float hoverDistanceTolerance;
     private bool hovering;
@@ -49,24 +49,30 @@ public class NodeManager : MonoBehaviour {
     }
 
 	void FixedUpdate () {
+        
+
+
         //Have we arrived at a node?
         if (node != null)
         {
             //Have we arrived at a node?
-            if (shipElements.Clockwise)
+            if (shipElements.Clockwise) 
             {
-                //Execute node's maneuver
-                if (lastTrueAnomaly > node.getTrueAnomaly() && shipElements.TrueAnomaly < node.getTrueAnomaly())
+                //TODO implement edge case when crossing over 0
+                if(MiscHelperFuncs.convertTo360Angle(shipElements.TrueAnomaly) < MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) && 
+                    MiscHelperFuncs.convertTo360Angle(lastTrueAnomaly) > MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) )
                 {
+                    Debug.LogWarning("need to implement edge case");
                     ship.applyThrust(node.getThrustVector());
                     node = null;
-                }
+                } 
             }
             else
             {
-                //Execute node's maneuver
-                if (lastTrueAnomaly < node.getTrueAnomaly() && shipElements.TrueAnomaly > node.getTrueAnomaly())
+                if (MiscHelperFuncs.convertTo360Angle(shipElements.TrueAnomaly) > MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) &&
+                    MiscHelperFuncs.convertTo360Angle(lastTrueAnomaly) < MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()))
                 {
+                    Debug.LogWarning("need to implement edge case");
                     ship.applyThrust(node.getThrustVector());
                     node = null;
                 }
@@ -154,7 +160,6 @@ public class NodeManager : MonoBehaviour {
         thrustVectorHandle.transform.position = node.getNodePosition() + shipElements.GlobalTransformationVector + thrustVector;
         thrustVectorHandle.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST / 2, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST / 2, 0);
         lineDrawer.DrawLine(node.getNodePosition() + shipElements.GlobalTransformationVector, node.getNodePosition() + shipElements.GlobalTransformationVector + thrustVector, Color.red);
-        lineDrawer.DrawLine(new Vector2(0, 0), new Vector2(0, 1000), Color.green);
     }
 
     public void setDragging(bool fucknamingconventions)
@@ -183,6 +188,16 @@ public class NodeManager : MonoBehaviour {
         {
             hovering = false;
         }
+        //Debugging
+        if ((mouseTrueAnomaly > Math.PI || mouseTrueAnomaly < -Math.PI) && shipElements.OrbitType == OrbitTypes.elliptical)
+        {
+            Debug.Break();
+            Debug.Log("ERROR");
+            Debug.Log("NODE");
+            Debug.Log("Position: " + node.getNodePosition());
+            Debug.Log("True Anomaly: " + node.getTrueAnomaly());
+            Debug.Log("Thrust: " + node.getThrustVector());
+        }
 
     }
 
@@ -193,10 +208,12 @@ public class NodeManager : MonoBehaviour {
             //create a new node
             if (node == null)
             {
+                
                 Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),
                 (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
                 (float)orbitalAltitude;
-                node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
+                node = new Node(mouseTrueAnomaly, new Vector2(0,0), nodePosition);
+                
             }
             //move an existing node
             else if (node != null &&
@@ -208,6 +225,7 @@ public class NodeManager : MonoBehaviour {
                 (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
                 (float)orbitalAltitude;
                 node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
+                
             }
             
         }
@@ -227,7 +245,7 @@ public class NodeManager : MonoBehaviour {
         Gizmos.color = Color.red;
         if (hovering)
         {
-            //Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 1.0f);
+            Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 0.1f);
         }
         if (node != null)
         {

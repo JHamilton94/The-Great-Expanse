@@ -2641,9 +2641,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd2eca73ec57c2a45be6d4fd2ce3a462, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nodePlacard: {fileID: 675298818}
-  node: {fileID: 631094708}
-  thrustVectorHandle: {fileID: 1094912918}
 --- !u!212 &1436866971
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2698,6 +2695,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79b056742b03b39458ce607a8a176d24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  nodePlacard: {fileID: 675298818}
+  nodeButton: {fileID: 631094708}
+  thrustVectorHandle: {fileID: 1094912918}
 --- !u!114 &1436866974
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2724,13 +2724,6 @@ MonoBehaviour:
   perigeePlacard: {fileID: 1493763873}
   apogeeButton: {fileID: 2108371807}
   apogeePlacard: {fileID: 130337894}
-  nadirHandle: {fileID: 0}
-  zenithHandle: {fileID: 0}
-  progradehandle: {fileID: 0}
-  retrogradeHandle: {fileID: 0}
-  node: {fileID: 0}
-  nodePlacard: {fileID: 0}
-  UI_SCALE_CONST: 50
 --- !u!1 &1461878758
 GameObject:
   m_ObjectHideFlags: 0

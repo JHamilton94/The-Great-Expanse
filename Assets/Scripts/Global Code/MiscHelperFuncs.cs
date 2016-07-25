@@ -35,4 +35,18 @@ public static class MiscHelperFuncs {
 
         return angleToWrap;
     } 
+
+    public static double convertTo360Angle(double angle)
+    {
+
+        //Debug.Log("In angle: " + angle);
+        if(angle < 0)
+        {
+            angle = Math.PI - Math.Abs(angle);
+            angle += Math.PI;
+        }
+
+        //Debug.Log("Return angle: " + angle);
+        return angle;
+    }
 }
