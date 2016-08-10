@@ -25,7 +25,6 @@ public class StarMassiveBodyBehavior : MonoBehaviour
             massiveBodyElements.mass, gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass);
                 break;
         }
-
     }
 
     // Update is called once per frame

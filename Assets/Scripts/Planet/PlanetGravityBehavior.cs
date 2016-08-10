@@ -18,6 +18,7 @@ public class PlanetGravityBehavior : MonoBehaviour
         //First time setup
         gravityElements = GetComponent<GravityElements>();
         gravityElements.MassiveBody = findInfluencingCelestialBody(transform.position, gravityElements.velocity, null);
+        gravityElements.massiveBody.GetComponent<MassiveBodyElements>().satelites.Add(gameObject);
         gravityElements.TimeStep = GlobalElements.timeStep;
         gravityElements.Position = transform.position - gravityElements.MassiveBody.transform.position;
         sphereChangeImmunity = 0;

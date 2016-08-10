@@ -15,6 +15,7 @@ public class StarGravityBehavior : MonoBehaviour
 
         gravityElements = this.GetComponent<GravityElements>();
         gravityElements.massiveBody = GameObject.Find("black_hole");
+        gravityElements.massiveBody.GetComponent<MassiveBodyElements>().satelites.Add(gameObject);
         gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
         gravityElements.TimeStep = GlobalElements.timeStep;
         gravityElements.Position = transform.position - gravityElements.MassiveBody.transform.position;

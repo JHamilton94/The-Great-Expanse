@@ -8,13 +8,14 @@ public class ShipGravityBehavior : MonoBehaviour
 
     public bool debugMode;
     public GravityElements gravityElements;
+    private ShipPatchedConics shipPatchedConics;
 
     private int sphereChangeImmunity;
 
     // Use this for initialization
     void Start()
     {
-        
+
         //First time setup
         gravityElements = GetComponent<GravityElements>();
         gravityElements.MassiveBody = findInfluencingCelestialBody(transform.position, gravityElements.velocity, null);
@@ -23,6 +24,9 @@ public class ShipGravityBehavior : MonoBehaviour
         sphereChangeImmunity = 0;
 
         calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity);
+
+        shipPatchedConics = GetComponent<ShipPatchedConics>();
+        shipPatchedConics.updateEncounters();
     }
 
     // Update is called once per frame
@@ -30,7 +34,7 @@ public class ShipGravityBehavior : MonoBehaviour
     {
         //change spheres of influence
         changeSpheresOfInfluence(this.transform.position, gravityElements.velocity, gravityElements.massiveBody);
-        
+
         //Calculate Next Orbital Position
         calculateNextOrbitalElements();
 
@@ -46,6 +50,7 @@ public class ShipGravityBehavior : MonoBehaviour
     public void applyThrust(Vector2 thrust)
     {
         calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity + thrust);
+        shipPatchedConics.updateEncounters();
     }
 
     //<summary>
@@ -57,7 +62,7 @@ public class ShipGravityBehavior : MonoBehaviour
     {
         GameObject[] massiveBodies = GameObject.FindGameObjectsWithTag("MassiveBody");
         List<GameObject> spheresOfInfluence = new List<GameObject>();
-        
+
         for (int i = 0; i < massiveBodies.Length; i++)
         {
             //quick and dirty calculation of altitude
@@ -75,7 +80,7 @@ public class ShipGravityBehavior : MonoBehaviour
             trueAnomaly = Math.Abs(MiscHelperFuncs.wrapAngle(trueAnomaly));
             double altitude = Vector2.Distance(massiveBodies[i].transform.position, transform.position);//semiLatusRectum / (1 + eccentricity.magnitude * Math.Cos(trueAnomaly));
 
-            
+
 
             if (massiveBodies[i].GetComponent<MassiveBodyElements>().SphereOfInfluence > altitude)
             {
@@ -87,16 +92,16 @@ public class ShipGravityBehavior : MonoBehaviour
                     Debug.Log("true anomaly: " + trueAnomaly);
                 }
                 spheresOfInfluence.Add(massiveBodies[i]);
-                
+
             }
         }
-        
+
         double smallestDistance = double.PositiveInfinity;
         GameObject returnGameObject = currentMassiveBody;
         foreach (GameObject massiveBody in spheresOfInfluence)
         {
             double distance = Vector2.Distance(massiveBody.transform.position, transform.position);
-            if(distance < smallestDistance)
+            if (distance < smallestDistance)
             {
                 smallestDistance = distance;
                 returnGameObject = massiveBody;
@@ -127,7 +132,7 @@ public class ShipGravityBehavior : MonoBehaviour
 
         //Calculate Altitude
         gravityElements.Altitude = OrbitalHelper.calculateAltitude(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, gravityElements.TrueAnomaly, gravityElements.OrbitType);
-        
+
         //Calculate positionVector
         gravityElements.Position = OrbitalHelper.calculatePosition(gravityElements.Perigee, gravityElements.TrueAnomaly, gravityElements.GlobalRotationAngle, gravityElements.Altitude, gravityElements.OrbitType);
 
@@ -150,7 +155,7 @@ public class ShipGravityBehavior : MonoBehaviour
         //Advance time
         gravityElements.TimeAtEpoch = OrbitalHelper.advanceTime(gravityElements.TimeAtEpoch, gravityElements.TimeStep, gravityElements.Clockwise, gravityElements.OrbitType);
 
-        
+
     }
 
     //<summary>
@@ -173,12 +178,14 @@ public class ShipGravityBehavior : MonoBehaviour
                 gravityElements.massiveBody = newSphereOfInfluence;
                 calculateInitialOrbitalElements(position - MiscHelperFuncs.convertToVec2(newSphereOfInfluence.transform.position), velocity + currentMassiveBody.GetComponent<GravityElements>().velocity);
                 sphereChangeImmunity = 10;
+                shipPatchedConics.updateEncounters();
             }
-            else
+            else //big to small
             {
                 gravityElements.massiveBody = newSphereOfInfluence;
                 calculateInitialOrbitalElements(position - MiscHelperFuncs.convertToVec2(newSphereOfInfluence.transform.position), velocity - newSphereOfInfluence.GetComponent<GravityElements>().velocity);
                 sphereChangeImmunity = 10;
+                shipPatchedConics.updateEncounters();
             }
         }
         else
@@ -188,7 +195,7 @@ public class ShipGravityBehavior : MonoBehaviour
     }
 
 
-    
+
 
     //<summary>
     //Takes in position and velocity realtive to the body being orbited
@@ -253,11 +260,11 @@ public class ShipGravityBehavior : MonoBehaviour
 
     }
 
-    
+
 
     //HELPER FUNCTIONS
-    
-    
+
+
     public void OnDrawGizmos()
     {
         if (debugMode && gravityElements != null)
@@ -297,7 +304,7 @@ public class ShipGravityBehavior : MonoBehaviour
 
             //Draw velocity
             Gizmos.color = Color.cyan;
-            Gizmos.DrawLine(gravityElements.GlobalTransformationVector + gravityElements.Position, gravityElements.GlobalTransformationVector + gravityElements.Position + gravityElements.velocity );
+            Gizmos.DrawLine(gravityElements.GlobalTransformationVector + gravityElements.Position, gravityElements.GlobalTransformationVector + gravityElements.Position + gravityElements.velocity);
 
             //Draw mean anomaly
             Gizmos.color = Color.green;
@@ -309,5 +316,34 @@ public class ShipGravityBehavior : MonoBehaviour
     {
         double radius = (semiMajorAxis * (1 - Vector2.SqrMagnitude(eccentricity))) / (1 - eccentricity.magnitude * (Math.Cos(angle - globalRotationAngle + Math.PI)));
         return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (float)radius;
+    }
+
+    public Vector2 calculatePositionAtFutureTime(double timeStep)
+    {
+        //Adjust tranformation vector
+        Vector2 globalTransformationVector = gravityElements.MassiveBody.transform.position;
+
+        //Calculate time at epoch
+        double timeAtEpoch = OrbitalHelper.advanceTime(gravityElements.TimeAtEpoch, timeStep, gravityElements.Clockwise, gravityElements.OrbitType);
+
+        //Calculate next meanAnomaly
+        double meanAnomaly = OrbitalHelper.calculateMeanAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.AnomalyAtEpoch,
+            timeStep, timeAtEpoch, gravityElements.Clockwise, gravityElements.Mu, gravityElements.OrbitType);
+
+        //Calculate Eccentric Anomaly
+        double eccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, GlobalElements.GRAV_CONST, timeStep, timeAtEpoch,
+            meanAnomaly, gravityElements.EccentricAnomaly, gravityElements.Mu, gravityElements.Clockwise, gravityElements.OrbitType);
+
+        //CalculateTrueAnomaly
+        double trueAnomaly = OrbitalHelper.calculateTrueAnomaly(gravityElements.Eccentricity, eccentricAnomaly, meanAnomaly, gravityElements.OrbitType);
+
+        //Calculate Altitude
+        double altitude = OrbitalHelper.calculateAltitude(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, trueAnomaly, gravityElements.OrbitType);
+
+        //Calculate positionVector
+        Vector2 position = OrbitalHelper.calculatePosition(gravityElements.Perigee, trueAnomaly, gravityElements.GlobalRotationAngle, altitude, gravityElements.OrbitType);
+
+        //Im returning the position here, you know, just in case you couldnt figure it out on your own
+        return position;
     }
 }

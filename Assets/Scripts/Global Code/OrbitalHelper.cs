@@ -267,6 +267,7 @@ public static class OrbitalHelper {
                 }
                 break;
             case OrbitTypes.parabolic:
+                Debug.LogWarning("Need to implement parabolic propagation");
                 break;
             case OrbitTypes.hyperbolic:
                 while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / mu) * (eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly) - returnEccentricAnomaly) < timeAtEpoch)

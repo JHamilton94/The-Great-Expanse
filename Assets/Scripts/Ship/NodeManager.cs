@@ -9,6 +9,7 @@ public class NodeManager : MonoBehaviour {
     private GravityElements shipElements;
     private ShipGravityBehavior ship;
     private LineDrawer lineDrawer;
+    private ShipPatchedConics patchedConics;
 
     //What we're making here
     public Node node;
@@ -41,6 +42,7 @@ public class NodeManager : MonoBehaviour {
         shipElements = GetComponent<GravityElements>();
         ship = GetComponent<ShipGravityBehavior>();
         lineDrawer = GetComponentInChildren<LineDrawer>();
+        patchedConics = GetComponent<ShipPatchedConics>();
         
         hoverDistanceTolerance = 1f;
         hovering = false;
@@ -96,6 +98,7 @@ public class NodeManager : MonoBehaviour {
         {
             thrustVector = MiscHelperFuncs.convertToVec2(Camera.main.ScreenToWorldPoint(Input.mousePosition)) - (node.getNodePosition() + shipElements.GlobalTransformationVector);
             node.setThrustVector(thrustVector);
+            
         }
 
         //do something
@@ -191,12 +194,12 @@ public class NodeManager : MonoBehaviour {
         //Debugging
         if ((mouseTrueAnomaly > Math.PI || mouseTrueAnomaly < -Math.PI) && shipElements.OrbitType == OrbitTypes.elliptical)
         {
-            Debug.Break();
-            Debug.Log("ERROR");
-            Debug.Log("NODE");
-            Debug.Log("Position: " + node.getNodePosition());
-            Debug.Log("True Anomaly: " + node.getTrueAnomaly());
-            Debug.Log("Thrust: " + node.getThrustVector());
+            //Debug.Break();
+            Debug.LogWarning("ERROR, mouse true anomaly out of bounds");
+            /*Debug.Log("NODE");
+            Debug.Log("Position: " + mouseLocation);
+            Debug.Log("True Anomaly: " + mouseTrueAnomaly);
+            Debug.Log("Thrust: " + "heehee");*/
         }
 
     }
@@ -225,7 +228,6 @@ public class NodeManager : MonoBehaviour {
                 (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
                 (float)orbitalAltitude;
                 node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
-                
             }
             
         }
