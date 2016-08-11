@@ -195,7 +195,7 @@ public class NodeManager : MonoBehaviour {
         if ((mouseTrueAnomaly > Math.PI || mouseTrueAnomaly < -Math.PI) && shipElements.OrbitType == OrbitTypes.elliptical)
         {
             //Debug.Break();
-            Debug.LogWarning("ERROR, mouse true anomaly out of bounds");
+            //Debug.LogWarning("ERROR, mouse true anomaly out of bounds");
             /*Debug.Log("NODE");
             Debug.Log("Position: " + mouseLocation);
             Debug.Log("True Anomaly: " + mouseTrueAnomaly);

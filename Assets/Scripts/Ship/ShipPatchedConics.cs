@@ -235,6 +235,8 @@ public class ShipPatchedConics : MonoBehaviour {
             time+=0.01;
             if(time > timeToApoapsis)
             {
+                Debug.Log("No encounter");
+                Debug.Log("Massive body: " + shipElements.massiveBody.name);
                 encounter = false;
                 break;
             }
@@ -267,9 +269,18 @@ public class ShipPatchedConics : MonoBehaviour {
         returnedInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
         Vector2 predictedNewBodyGlobalPosition = returnedInfo.item1;
         Vector2 predictedNewBodyGlobalVelocity = returnedInfo.item2;
+        
+        returnedInfo = shipsMassivebodyGravityElements.calculateLocalPositionAndVelocityAtFutureTime(time);
+        Vector2 predictedLocalCurrentMassiveBodyVelocity = returnedInfo.item2;
 
         Vector2 positionRelativeToEncounter = (predictedLocalPlayerPosition + predictedGlobalCurrentMassiveBodyPosition) - predictedNewBodyGlobalPosition;
-        Vector2 velocityRelativeToEncounter = (predictedLocalPlayerVelocity + predictedGlobalCurrentMassiveBodyVelocity) - predictedNewBodyGlobalVelocity;
+        Vector2 velocityRelativeToEncounter = (predictedLocalCurrentMassiveBodyVelocity + predictedLocalPlayerVelocity);
+
+        Debug.Log("Predicted global current massive body velocity: " + predictedGlobalCurrentMassiveBodyVelocity);
+        Debug.Log("Predicted player local velocity: " + predictedLocalPlayerVelocity);
+        Debug.Log("Predicted new body global velocity: " + predictedNewBodyGlobalVelocity);
+        Debug.Log("Predicted local Current Massive body velocity: " + predictedLocalCurrentMassiveBodyVelocity);
+        Debug.Log("Velocity relative to encounter: " + velocityRelativeToEncounter);
 
         firstEncounter = calculateInitialOrbitalElements(positionRelativeToEncounter, velocityRelativeToEncounter, encounteredMassiveBody, predictedNewBodyGlobalPosition);
 
@@ -300,12 +311,11 @@ public class ShipPatchedConics : MonoBehaviour {
     //takes in everything relative to the body being orbited
     private GravityElementsClass calculateInitialOrbitalElements(Vector2 position, Vector2 velocity, GameObject massiveBody, Vector2 predictedGlobalTransformationVector)
     {
-        
         GravityElementsClass gravityElements = new GravityElementsClass();
 
         gravityElements.massiveBody = massiveBody;
 
-        gravityElements.Mu = GlobalElements.GRAV_CONST * 100;//gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
+        gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
         gravityElements.Position = position;
         gravityElements.velocity = velocity;
 
@@ -361,7 +371,7 @@ public class ShipPatchedConics : MonoBehaviour {
         gravityElements.TimeAtEpoch = OrbitalHelper.calculateTimeAtEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.SemiMajorAxis, gravityElements.Mu,
             gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
 
-        Debug.Log("Encounter info dump");
+        /*Debug.Log("Encounter info dump");
         Debug.Log("Eccentricity: " + gravityElements.Eccentricity);
         Debug.Log("Mechanical Energy: " + gravityElements.MechanicalEnergy);
         Debug.Log("SemiMajor Axis: " + gravityElements.SemiMajorAxis);
@@ -377,7 +387,7 @@ public class ShipPatchedConics : MonoBehaviour {
         Debug.Log("Anomaly At Epoch: " + gravityElements.AnomalyAtEpoch);
         Debug.Log("Mean Anomaly: " + gravityElements.MeanAnomaly);
         Debug.Log("Angular Momentum: " + gravityElements.AngularMomentum);
-        Debug.Log("Time At Epoch: " + gravityElements.TimeAtEpoch);
+        Debug.Log("Time At Epoch: " + gravityElements.TimeAtEpoch);*/
 
         return gravityElements;
     }

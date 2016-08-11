@@ -202,6 +202,8 @@ public class ShipGravityBehavior : MonoBehaviour
     //</summary>
     private void calculateInitialOrbitalElements(Vector2 position, Vector2 velocity)
     {
+        Debug.Log("Actual initial velocity: " + velocity);
+
         gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
         gravityElements.Position = position;
         gravityElements.velocity = velocity;
