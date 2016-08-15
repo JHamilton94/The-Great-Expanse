@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class GravityElements : MonoBehaviour {
-    
+public class GravityElements : MonoBehaviour
+{
+
     public GravityElements()
     {
 
@@ -52,7 +53,7 @@ public class GravityElements : MonoBehaviour {
 
     private Vector2 globalTransformationVector;
     private double globalRotationAngle;
-    
+
     public double Altitude
     {
         get
@@ -424,7 +425,7 @@ public class GravityElements : MonoBehaviour {
 
         Vector2 returnPosition;
         Vector2 returnVelocity;
-        
+
         switch (gravitationalType)
         {
             case GravitationalType.black_hole:
@@ -457,14 +458,14 @@ public class GravityElements : MonoBehaviour {
         switch (gravitationalType)
         {
             case GravitationalType.black_hole:
-                return new Vector2(0,0);
+                return new Vector2(0, 0);
             case GravitationalType.star:
                 return calculateLocalPositionAtFutureTime(timeStep);
             case GravitationalType.planet:
                 return this.massiveBody.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(timeStep) + calculateLocalPositionAtFutureTime(timeStep);
             case GravitationalType.ship:
                 Debug.LogWarning("You're using this function wrong.... dumbass...");
-                return new Vector2(0,0);
+                return new Vector2(0, 0);
             default:
                 Debug.LogWarning("This code should be inaccessable.");
                 return new Vector2(0, 0);
@@ -558,6 +559,55 @@ public class GravityElementsClass
     public GravityElementsClass()
     {
 
+    }
+
+    public GravityElementsClass(Vector2 velocity, Vector2 position, GravityElements gravElements)
+    {
+        copyGravityElementsComponent(gravElements);
+        this.velocity = velocity;
+        this.position = position;
+    }
+
+    private void copyGravityElementsComponent(GravityElements gravElements)
+    {
+        this.velocity = gravElements.velocity;
+        this.massiveBody = gravElements.massiveBody;
+        this.gravitationalType = gravElements.gravitationalType;
+
+        this.altitude = gravElements.Altitude;
+        this.speed = gravElements.Speed;
+        this.velocityAngle = gravElements.VelocityAngle;
+
+        this.orbitType = gravElements.OrbitType;
+        this.mu = gravElements.Mu;
+
+        this.position = gravElements.Position;
+        this.apogee = gravElements.Apogee;
+        this.perigee = gravElements.Perigee;
+        this.center = gravElements.Center;
+        this.altitudeOfPerigee = gravElements.AltitudeOfPerigee;
+        this.angularMomentum = gravElements.AngularMomentum;
+
+        this.semiMajorAxis = gravElements.SemiMajorAxis;
+        this.semiLatusRectum = gravElements.SemiLatusRectum;
+
+        this.eccentricity = gravElements.Eccentricity;
+        this.eccentricityMagnitude = gravElements.EccentricityMagnitude;
+        this.eccentricAnomaly = gravElements.EccentricAnomaly;
+        this.trueAnomaly = gravElements.TrueAnomaly;
+        this.meanAnomaly = gravElements.MeanAnomaly;
+        this.anomalyAtEpoch = gravElements.AnomalyAtEpoch;
+        this.mechanicalEnergy = gravElements.MechanicalEnergy;
+
+        this.time = gravElements.Time;
+        this.timeStep = gravElements.TimeStep;
+        this.timeAtEpoch = gravElements.TimeAtEpoch;
+
+        this.clockwise = gravElements.Clockwise;
+        this.towardsPerigee = gravElements.TowardsPerigee;
+
+        this.globalTransformationVector = gravElements.GlobalTransformationVector;
+        this.globalRotationAngle = gravElements.GlobalRotationAngle;
     }
 
     /**
@@ -967,5 +1017,127 @@ public class GravityElementsClass
         {
             position = value;
         }
+    }
+
+    //Calculate Global position at future time, cannot be used for ship
+    public Tuple<Vector2, Vector2> calculateGlobalPositionAndVelocityAtFutureTime(double timeStep)
+    {
+        Tuple<Vector2, Vector2> returnInfo;
+
+        Vector2 returnPosition;
+        Vector2 returnVelocity;
+
+        switch (gravitationalType)
+        {
+            case GravitationalType.black_hole:
+                returnPosition = new Vector2(0, 0);
+                returnVelocity = new Vector2(0, 0);
+                return new Tuple<Vector2, Vector2>(returnPosition, returnVelocity);
+            case GravitationalType.star:
+                returnInfo = calculateLocalPositionAndVelocityAtFutureTime(timeStep);
+                return returnInfo;
+            case GravitationalType.planet:
+                returnInfo = calculateLocalPositionAndVelocityAtFutureTime(timeStep);
+                returnPosition = returnInfo.item1;
+                returnVelocity = returnInfo.item2;
+                returnInfo = this.massiveBody.GetComponent<GravityElements>().calculateLocalPositionAndVelocityAtFutureTime(timeStep);
+                returnPosition += returnInfo.item1;
+                returnVelocity += returnInfo.item2;
+                return new Tuple<Vector2, Vector2>(returnPosition, returnVelocity);
+            case GravitationalType.ship:
+                Debug.LogWarning("You're using this function wrong.... dumbass...");
+                return new Tuple<Vector2, Vector2>(new Vector2(0, 0), new Vector2(0, 0));
+            default:
+                Debug.LogWarning("This code should be inaccessable.");
+                return new Tuple<Vector2, Vector2>(new Vector2(0, 0), new Vector2(0, 0));
+        }
+    }
+
+    //Calculate Global position at future time, cannot be used for ship
+    public Vector2 calculateGlobalPositionAtFutureTime(double timeStep)
+    {
+        switch (gravitationalType)
+        {
+            case GravitationalType.black_hole:
+                return new Vector2(0, 0);
+            case GravitationalType.star:
+                return calculateLocalPositionAtFutureTime(timeStep);
+            case GravitationalType.planet:
+                return this.massiveBody.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(timeStep) + calculateLocalPositionAtFutureTime(timeStep);
+            case GravitationalType.ship:
+                Debug.LogWarning("You're using this function wrong.... dumbass...");
+                return new Vector2(0, 0);
+            default:
+                Debug.LogWarning("This code should be inaccessable.");
+                return new Vector2(0, 0);
+        }
+    }
+
+    //This behavior is shared by all gravity bound objects
+    public Vector2 calculateLocalPositionAtFutureTime(double timeStep)
+    {
+        //Adjust tranformation vector
+        Vector2 globalTransformationVector = massiveBody.transform.position;
+
+        //Calculate time at epoch
+        double timeAtEpoch = OrbitalHelper.advanceTime(this.timeAtEpoch, timeStep, clockwise, orbitType);
+
+        //Calculate next meanAnomaly
+        double meanAnomaly = OrbitalHelper.calculateMeanAnomaly(eccentricity, semiMajorAxis, anomalyAtEpoch,
+            timeStep, timeAtEpoch, clockwise, mu, orbitType);
+
+        //Calculate Eccentric Anomaly
+        double eccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(eccentricity, semiMajorAxis, GlobalElements.GRAV_CONST, timeStep, timeAtEpoch,
+            meanAnomaly, this.eccentricAnomaly, mu, clockwise, orbitType);
+
+        //CalculateTrueAnomaly
+        double trueAnomaly = OrbitalHelper.calculateTrueAnomaly(eccentricity, eccentricAnomaly, meanAnomaly, orbitType);
+
+        //Calculate Altitude
+        double altitude = OrbitalHelper.calculateAltitude(eccentricity, semiMajorAxis, semiLatusRectum, trueAnomaly, orbitType);
+
+        //Calculate positionVector
+        Vector2 position = OrbitalHelper.calculatePosition(perigee, trueAnomaly, globalRotationAngle, altitude, orbitType);
+
+        return position;
+    }
+
+    public Tuple<Vector2, Vector2> calculateLocalPositionAndVelocityAtFutureTime(double timeStep)
+    {
+        //Calculate time at epoch
+        double timeAtEpoch = OrbitalHelper.advanceTime(this.timeAtEpoch, timeStep, clockwise, orbitType);
+
+        //Calculate next meanAnomaly
+        double meanAnomaly = OrbitalHelper.calculateMeanAnomaly(eccentricity, semiMajorAxis, anomalyAtEpoch,
+            timeStep, timeAtEpoch, clockwise, mu, orbitType);
+
+        //Calculate Eccentric Anomaly
+        double eccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(eccentricity, semiMajorAxis, GlobalElements.GRAV_CONST, timeStep, timeAtEpoch,
+            meanAnomaly, this.eccentricAnomaly, mu, clockwise, orbitType);
+
+        //CalculateTrueAnomaly
+        double trueAnomaly = OrbitalHelper.calculateTrueAnomaly(eccentricity, eccentricAnomaly, meanAnomaly, orbitType);
+
+        //Calculate Altitude
+        double altitude = OrbitalHelper.calculateAltitude(eccentricity, semiMajorAxis, semiLatusRectum, trueAnomaly, orbitType);
+
+        //Calculate positionVector
+        Vector2 position = OrbitalHelper.calculatePosition(perigee, trueAnomaly, globalRotationAngle, altitude, orbitType);
+
+        //Are we going towards the perigee?
+        bool towardsPerigee = OrbitalHelper.towardsPerigeeOrbit(meanAnomaly, clockwise, timeAtEpoch, orbitType);
+
+        //Calculate velocity angle
+        double velocityAngle = OrbitalHelper.calculateVelocityAngle(position, eccentricity, semiMajorAxis,
+            trueAnomaly, globalRotationAngle, clockwise, towardsPerigee, orbitType);
+
+        //Calculate Speed
+        double speed = OrbitalHelper.calculateSpeed(position, semiMajorAxis, mu, orbitType);
+
+        //Calculate Velocity
+        Vector2 velocity = OrbitalHelper.assembleVelocityVector(velocityAngle, speed);
+
+        //Im returning the position here, you know, just in case you couldnt figure it out on your own
+        return new Tuple<Vector2, Vector2>(position, velocity);
     }
 }

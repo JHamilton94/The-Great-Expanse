@@ -249,4 +249,15 @@ public class NodeManager : MonoBehaviour {
             //Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
         }
     }
+
+    public void updatePatchedConics()
+    {
+        //update patched conics
+        double velocityAngle = OrbitalHelper.calculateVelocityAngle(node.getNodePosition(), shipElements.Eccentricity, shipElements.SemiMajorAxis, node.getTrueAnomaly(), shipElements.GlobalRotationAngle, shipElements.Clockwise, shipElements.TowardsPerigee, shipElements.OrbitType);
+        double speed = OrbitalHelper.calculateSpeed(node.getNodePosition(), shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
+        Debug.Log("Predicted speed: " + OrbitalHelper.assembleVelocityVector(velocityAngle, speed));
+        Debug.Log("Thrust vector: " + node.getThrustVector());
+        Debug.Log("New speed: " + (node.getThrustVector() + OrbitalHelper.assembleVelocityVector(velocityAngle, speed)));
+        patchedConics.updatePotentialEncounters(node.getThrustVector() + OrbitalHelper.assembleVelocityVector(velocityAngle, speed), node.getNodePosition());
+    }
 }

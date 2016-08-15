@@ -2,7 +2,8 @@
 using System.Collections;
 using UnityEngine.UI;
 using System;
-public class InputController : MonoBehaviour {
+public class InputController : MonoBehaviour
+{
 
     private double oldTimeStep;
     private ShipGravityBehavior shipGravityBehavior;
@@ -10,9 +11,9 @@ public class InputController : MonoBehaviour {
     private ShipPatchedConics graphicsManager;
     private GravityElements shipElements;
 
-    
-    
-    
+
+
+
 
     // Use this for initialization
     void Start()
@@ -21,12 +22,13 @@ public class InputController : MonoBehaviour {
         nodeManager = GetComponent<NodeManager>();
         graphicsManager = GetComponent<ShipPatchedConics>();
         shipElements = GetComponent<GravityElements>();
-        
+
         Camera.main.orthographicSize = GlobalElements.zoomLevel;
     }
-	
-	// Update is called once per frame
-	void FixedUpdate () {
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
 
         //hovering over orbit
         nodeManager.hover(Camera.main.ScreenToWorldPoint(Input.mousePosition));
@@ -46,36 +48,37 @@ public class InputController : MonoBehaviour {
         {
             GlobalElements.timeStep -= 0.01f;
         }
-        
+
         //Camera zoom
         if (Input.GetAxis("RightVertical") > 0.01f)
         {
             GlobalElements.zoomLevel -= 1;
             Camera.main.orthographicSize = GlobalElements.zoomLevel;
         }
-        if(Input.GetAxis("RightVertical") < -0.01f)
+        if (Input.GetAxis("RightVertical") < -0.01f)
         {
             GlobalElements.zoomLevel += 1;
             Camera.main.orthographicSize = GlobalElements.zoomLevel;
         }
-        
+
         if (Input.GetButtonDown("Pause") && GlobalElements.timeStep != 0)
-        {   
+        {
             oldTimeStep = GlobalElements.timeStep;
             GlobalElements.timeStep = 0;
         }
-        else if(Input.GetButtonDown("Pause") && GlobalElements.timeStep == 0){
+        else if (Input.GetButtonDown("Pause") && GlobalElements.timeStep == 0)
+        {
             GlobalElements.timeStep = oldTimeStep;
         }
     }
-    
+
     public void OnDrawGizmos()
     {
         //Draw thrust vector
         Gizmos.color = Color.red;
     }
 
-   
+
 
     //Helper funcs
     private Vector3 convertToVec3(Vector2 inVec)
@@ -91,6 +94,7 @@ public class InputController : MonoBehaviour {
     public void stopDragButton()
     {
         nodeManager.setDragging(false);
+        nodeManager.updatePatchedConics();
     }
-    
+
 }
