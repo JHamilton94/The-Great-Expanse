@@ -14,6 +14,7 @@ public class NodeManager : MonoBehaviour {
     //What we're making here
     public Node node;
     
+	// Input data
     private float hoverDistanceTolerance;
     private bool hovering;
 
@@ -21,7 +22,6 @@ public class NodeManager : MonoBehaviour {
     private double mouseAltitude;
     private double mouseTrueAnomaly;
     private double orbitalAltitude;
-
 
     //node rose
     public Image nodePlacard;
@@ -51,32 +51,25 @@ public class NodeManager : MonoBehaviour {
     }
 
 	void FixedUpdate () {
-        
-
-
         //Have we arrived at a node?
         if (node != null)
         {
-            //Have we arrived at a node?
+            //Is the ship moving clockwise?
             if (shipElements.Clockwise) 
             {
                 //TODO implement edge case when crossing over 0
                 if(MiscHelperFuncs.convertTo360Angle(shipElements.TrueAnomaly) < MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) && 
                     MiscHelperFuncs.convertTo360Angle(lastTrueAnomaly) > MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) )
                 {
-                    Debug.LogWarning("need to implement edge case");
-                    ship.applyThrust(node.getThrustVector());
-                    node = null;
+					executeManeuver();
                 } 
             }
             else
             {
                 if (MiscHelperFuncs.convertTo360Angle(shipElements.TrueAnomaly) > MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()) &&
                     MiscHelperFuncs.convertTo360Angle(lastTrueAnomaly) < MiscHelperFuncs.convertTo360Angle(node.getTrueAnomaly()))
-                {
-                    Debug.LogWarning("need to implement edge case");
-                    ship.applyThrust(node.getThrustVector());
-                    node = null;
+				{
+					executeManeuver();
                 }
             }
         }
@@ -98,11 +91,17 @@ public class NodeManager : MonoBehaviour {
         {
             thrustVector = MiscHelperFuncs.convertToVec2(Camera.main.ScreenToWorldPoint(Input.mousePosition)) - (node.getNodePosition() + shipElements.GlobalTransformationVector);
             node.setThrustVector(thrustVector);
-            
         }
 
         //do something
         lastTrueAnomaly = shipElements.TrueAnomaly;
+	}
+
+	private void executeManeuver() {
+		Debug.LogWarning("need to implement edge case");
+		ship.applyThrust(node.getThrustVector());
+		thrustVector *= 0;
+		node = null;
 	}
 
     private void positionNode()
@@ -165,9 +164,9 @@ public class NodeManager : MonoBehaviour {
         lineDrawer.DrawLine(node.getNodePosition() + shipElements.GlobalTransformationVector, node.getNodePosition() + shipElements.GlobalTransformationVector + thrustVector, Color.red);
     }
 
-    public void setDragging(bool fucknamingconventions)
+    public void setDragging(bool drag)
     {
-        dragging = fucknamingconventions;
+        dragging = drag;
     }
 
     public void hover(Vector2 mouseLocation)
@@ -201,7 +200,6 @@ public class NodeManager : MonoBehaviour {
             Debug.Log("True Anomaly: " + mouseTrueAnomaly);
             Debug.Log("Thrust: " + "heehee");*/
         }
-
     }
 
     public void createNode()
@@ -211,12 +209,10 @@ public class NodeManager : MonoBehaviour {
             //create a new node
             if (node == null)
             {
-                
                 Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),
                 (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
                 (float)orbitalAltitude;
                 node = new Node(mouseTrueAnomaly, new Vector2(0,0), nodePosition);
-                
             }
             //move an existing node
             else if (node != null &&
@@ -228,8 +224,7 @@ public class NodeManager : MonoBehaviour {
                 (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
                 (float)orbitalAltitude;
                 node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
-            }
-            
+			}
         }
         else
         {
