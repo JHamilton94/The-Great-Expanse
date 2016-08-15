@@ -524,7 +524,7 @@ public class GravityElements : MonoBehaviour
         Vector2 position = OrbitalHelper.calculatePosition(perigee, trueAnomaly, globalRotationAngle, altitude, orbitType);
 
         //Are we going towards the perigee?
-        bool towardsPerigee = OrbitalHelper.towardsPerigeeOrbit(meanAnomaly, clockwise, timeAtEpoch, orbitType);
+        bool towardsPerigee = OrbitalHelper.towardsPerigeeOrbit(meanAnomaly, clockwise);
 
         //Calculate velocity angle
         double velocityAngle = OrbitalHelper.calculateVelocityAngle(position, eccentricity, semiMajorAxis,
@@ -1125,7 +1125,7 @@ public class GravityElementsClass
         Vector2 position = OrbitalHelper.calculatePosition(perigee, trueAnomaly, globalRotationAngle, altitude, orbitType);
 
         //Are we going towards the perigee?
-        bool towardsPerigee = OrbitalHelper.towardsPerigeeOrbit(meanAnomaly, clockwise, timeAtEpoch, orbitType);
+        bool towardsPerigee = OrbitalHelper.towardsPerigeeOrbit(meanAnomaly, clockwise);
 
         //Calculate velocity angle
         double velocityAngle = OrbitalHelper.calculateVelocityAngle(position, eccentricity, semiMajorAxis,

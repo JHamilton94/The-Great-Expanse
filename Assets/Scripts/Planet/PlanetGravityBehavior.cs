@@ -131,7 +131,7 @@ public class PlanetGravityBehavior : MonoBehaviour
         gravityElements.Position = OrbitalHelper.calculatePosition(gravityElements.Perigee, gravityElements.TrueAnomaly, gravityElements.GlobalRotationAngle, gravityElements.Altitude, gravityElements.OrbitType);
 
         //Are we going towards the perigee?
-        gravityElements.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(gravityElements.MeanAnomaly, gravityElements.Clockwise, gravityElements.TimeAtEpoch, gravityElements.OrbitType);
+        gravityElements.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(gravityElements.MeanAnomaly, gravityElements.Clockwise);
 
         //Calculate velocity angle
         gravityElements.VelocityAngle = OrbitalHelper.calculateVelocityAngle(gravityElements.Position, gravityElements.Eccentricity, gravityElements.SemiMajorAxis,

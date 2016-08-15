@@ -47,7 +47,7 @@ public class ShipPatchedConics : MonoBehaviour
 
     void FixedUpdate()
     {
-
+        //update encounter transformation vectors
         foreach (GravityElementsClass encounter in encounters)
         {
             encounter.GlobalTransformationVector = encounter.massiveBody.transform.position;
@@ -277,7 +277,7 @@ public class ShipPatchedConics : MonoBehaviour
 
     }
 
-    public void updatePotentialEncounters(Vector2 maneuverVelocity, Vector2 maneuverPosition)
+    public void updatePotentialEncounters(Vector2 maneuverPosition, Vector2 maneuverVelocity)
     {
         if (potentialEncounters == null)
         {
@@ -354,7 +354,7 @@ public class ShipPatchedConics : MonoBehaviour
 
         firstEncounter = calculateInitialOrbitalElements(shipPredictedEncounterLocalPosition, shipPredictedEncounterLocalVelocity, encounteredMassiveBody);
 
-        encounters.Enqueue(firstEncounter);
+        //encounters.Enqueue(firstEncounter);
     }
 
     public void clearPotentialEncounters()
@@ -389,7 +389,7 @@ public class ShipPatchedConics : MonoBehaviour
         gravityElements.velocity = velocity;
 
         //Calculate Global Tranformation Vector
-        gravityElements.GlobalTransformationVector = shipElements.GlobalTransformationVector;
+        gravityElements.GlobalTransformationVector = massiveBody.transform.position;
 
         //Calculate eccentricity
         gravityElements.Eccentricity = OrbitalHelper.calculateEccentricity(position, velocity, gravityElements.Mu);

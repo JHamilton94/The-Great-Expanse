@@ -157,9 +157,9 @@ public static class OrbitalHelper {
         return returnVelocityAngle;
     }
 
-    public static bool towardsPerigeeOrbit(double meanAnomaly, bool clockwise, double timeAtEpoch, OrbitTypes orbitType)
+    public static bool towardsPerigeeOrbit(double meanAnomalyOrTrueAnomaly, bool clockwise)
     {
-        return (clockwise && meanAnomaly > 0) || (!clockwise && meanAnomaly < 0);
+        return (clockwise && meanAnomalyOrTrueAnomaly > 0) || (!clockwise && meanAnomalyOrTrueAnomaly < 0);
     }
 
     public static Vector2 calculatePosition(Vector2 perigee, double trueAnomaly, double globalRotationAngle, double altitude, OrbitTypes orbitType)
