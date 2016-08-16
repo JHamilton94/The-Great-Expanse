@@ -101,6 +101,7 @@ public class NodeManager : MonoBehaviour {
 		Debug.LogWarning("need to implement edge case");
 		ship.applyThrust(node.getThrustVector());
 		thrustVector *= 0;
+        patchedConics.clearPotentialEncounters();
 		node = null;
 	}
 
@@ -253,25 +254,10 @@ public class NodeManager : MonoBehaviour {
     public void updatePatchedConics()
     {
         //update patched conics
-        Debug.Log("True anomaly: " + node.getTrueAnomaly());
-        Debug.Log("Position: " + node.getNodePosition());
-        Debug.Log("Global rotation angle: " + shipElements.GlobalRotationAngle);
-        Debug.Log("Clockwise: " + shipElements.Clockwise);
-        Debug.Log("Eccentricity: " + shipElements.Eccentricity);
-        Debug.Log("Semi major axis: " + shipElements.SemiMajorAxis);
-        Debug.Log("Towards perigee: " + shipElements.TowardsPerigee);
-
-
         bool predictedSideOfOrbit = OrbitalHelper.towardsPerigeeOrbit(node.getTrueAnomaly(), shipElements.Clockwise);
         double velocityAngle = OrbitalHelper.calculateVelocityAngle(node.getNodePosition(), shipElements.Eccentricity, shipElements.SemiMajorAxis, node.getTrueAnomaly(), shipElements.GlobalRotationAngle, shipElements.Clockwise, predictedSideOfOrbit, shipElements.OrbitType);
         double speed = OrbitalHelper.calculateSpeed(node.getNodePosition(), shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
-
-        Debug.Log("Angle: " + velocityAngle);
-        Debug.Log("Speed: " + speed);
-
-        Debug.Log("Predicted speed: " + OrbitalHelper.assembleVelocityVector(velocityAngle, speed));
-        Debug.Log("Thrust vector: " + node.getThrustVector());
-        Debug.Log("New speed: " + (node.getThrustVector() + OrbitalHelper.assembleVelocityVector(velocityAngle, speed)));
+        
         patchedConics.updatePotentialEncounters(node.getNodePosition(), node.getThrustVector() + OrbitalHelper.assembleVelocityVector(velocityAngle, speed));
     }
 }
