@@ -99,7 +99,8 @@ public class NodeManager : MonoBehaviour {
 
 	private void executeManeuver() {
 		Debug.LogWarning("need to implement edge case");
-		ship.applyThrust(node.getThrustVector());
+        shipElements.Position = node.getNodePosition();
+        ship.applyThrust(node.getThrustVector());
 		thrustVector *= 0;
         patchedConics.clearPotentialEncounters();
 		node = null;

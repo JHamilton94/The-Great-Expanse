@@ -539,6 +539,52 @@ public class GravityElements : MonoBehaviour
         //Im returning the position here, you know, just in case you couldnt figure it out on your own
         return new Tuple<Vector2, Vector2>(position, velocity);
     }
+
+    public GravityElementsClass getClassVersion()
+    {
+        GravityElementsClass returnGravityElements = new GravityElementsClass();
+
+        returnGravityElements.velocity = this.velocity;
+        returnGravityElements.massiveBody = this.massiveBody;
+        returnGravityElements.gravitationalType = this.gravitationalType;
+
+        returnGravityElements.Altitude = this.Altitude;
+        returnGravityElements.Speed = this.Speed;
+        returnGravityElements.VelocityAngle = this.VelocityAngle;
+
+        returnGravityElements.OrbitType = this.OrbitType;
+        returnGravityElements.Mu = this.Mu;
+
+        returnGravityElements.Position = this.Position;
+        returnGravityElements.Apogee = this.Apogee;
+        returnGravityElements.Perigee = this.Perigee;
+        returnGravityElements.Center = this.Center;
+        returnGravityElements.AltitudeOfPerigee = this.AltitudeOfPerigee;
+        returnGravityElements.AngularMomentum = this.AngularMomentum;
+
+        returnGravityElements.SemiMajorAxis = this.SemiMajorAxis;
+        returnGravityElements.SemiLatusRectum = this.SemiLatusRectum;
+
+        returnGravityElements.Eccentricity = this.Eccentricity;
+        returnGravityElements.EccentricityMagnitude = this.EccentricityMagnitude;
+        returnGravityElements.EccentricAnomaly = this.EccentricAnomaly;
+        returnGravityElements.TrueAnomaly = this.TrueAnomaly;
+        returnGravityElements.MeanAnomaly = this.MeanAnomaly;
+        returnGravityElements.AnomalyAtEpoch = this.AnomalyAtEpoch;
+        returnGravityElements.MechanicalEnergy = this.MechanicalEnergy;
+
+        returnGravityElements.Time = this.Time;
+        returnGravityElements.TimeStep = this.TimeStep;
+        returnGravityElements.TimeAtEpoch = this.TimeAtEpoch;
+
+        returnGravityElements.Clockwise = this.Clockwise;
+        returnGravityElements.TowardsPerigee = this.TowardsPerigee;
+
+        returnGravityElements.GlobalTransformationVector = this.GlobalTransformationVector;
+        returnGravityElements.GlobalRotationAngle = this.GlobalRotationAngle;
+
+        return returnGravityElements;
+    }
 }
 
 
@@ -615,7 +661,7 @@ public class GravityElementsClass
     *   based on the location of the celestial body. Velocity 
     *   is always calculated relative to the body it orbits.
     */
-
+    
     public Vector2 velocity;
     public GameObject massiveBody;
     public GravitationalType gravitationalType;
@@ -654,6 +700,7 @@ public class GravityElementsClass
 
     private Vector2 globalTransformationVector;
     private double globalRotationAngle;
+
 
     public double Altitude
     {

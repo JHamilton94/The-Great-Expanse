@@ -13,6 +13,9 @@ public class ShipPatchedConics : MonoBehaviour
 
     //Data sources
     private GravityElements shipElements;
+    private Encounters encounters;
+
+    //Other behaviors
     private ShipGravityBehavior ship;
     private SpriteRenderer spriteRenderer;
     private LineDrawer lineDrawer;
@@ -26,112 +29,51 @@ public class ShipPatchedConics : MonoBehaviour
 
     private bool onEscapeTrajectory;
     public GameObject encounterIconPrefab;
-    private Queue<GravityElementsClass> encounters; //Predicted exit of the sphere of influence, the predicted gravity elements for the sphere of influence
-    private Queue<GravityElementsClass> potentialEncounters;
     private int maxSphereChanges;
     private int currentSphereChanges;
 
     private bool instantiated;
+    private int iterations;
+    private int MAX_ITERATIONS = 3;
 
     void Start()
     {
         shipElements = GetComponent<GravityElements>();
+        encounters = GetComponent<Encounters>();
+
         ship = GetComponent<ShipGravityBehavior>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
         lineDrawer = GetComponentInChildren<LineDrawer>();
         nodeManager = GetComponent<NodeManager>();
 
-        encounters = new Queue<GravityElementsClass>();
-        potentialEncounters = new Queue<GravityElementsClass>();
+        updateEncounters();
     }
 
     void FixedUpdate()
     {
         //update encounter transformation vectors
-        foreach (GravityElementsClass encounter in encounters)
+        foreach (Encounter encounter in encounters.predictedEncounters)
         {
-            encounter.GlobalTransformationVector = encounter.massiveBody.transform.position;
+            encounter.GravElements.GlobalTransformationVector = encounter.GravElements.massiveBody.transform.position;
         }
 
-        foreach (GravityElementsClass encounter in potentialEncounters)
+        foreach (Encounter encounter in encounters.maneuverEncounters)
         {
-            encounter.GlobalTransformationVector = encounter.massiveBody.transform.position;
+            encounter.GravElements.GlobalTransformationVector = encounter.GravElements.massiveBody.transform.position;
         }
 
         //Display ships patched conics
-        //currentSphereChanges = 0;
-        drawPatchedConics(false, shipElements.massiveBody.GetComponent<MassiveBodyElements>(), shipElements.TrueAnomaly, shipElements.GlobalTransformationVector, shipElements.Eccentricity, shipElements.GlobalRotationAngle, shipElements.SemiMajorAxis, shipElements.Clockwise, Color.red);
-
-        if (encounters.Count > 0)
+        int i = 0;
+        foreach(Encounter encounter in encounters.predictedEncounters)
         {
-            drawPatchedConics(true, encounters.Peek().massiveBody.GetComponent<MassiveBodyElements>(), encounters.Peek().TrueAnomaly, encounters.Peek().GlobalTransformationVector, encounters.Peek().Eccentricity, encounters.Peek().GlobalRotationAngle, encounters.Peek().SemiMajorAxis, encounters.Peek().Clockwise, Color.red);
-        }
-        if (potentialEncounters.Count > 0)
-        {
-            drawPatchedConics(true, potentialEncounters.Peek().massiveBody.GetComponent<MassiveBodyElements>(), potentialEncounters.Peek().TrueAnomaly, potentialEncounters.Peek().GlobalTransformationVector, potentialEncounters.Peek().Eccentricity, potentialEncounters.Peek().GlobalRotationAngle, potentialEncounters.Peek().SemiMajorAxis, potentialEncounters.Peek().Clockwise, Color.cyan);
+            drawPatchedConics(encounter, Color.red);
         }
 
-
-        //Display orbital poi
-        /*float width = perigeePlacard.rectTransform.rect.width * perigeePlacard.transform.localScale.x;
-        float height = perigeePlacard.rectTransform.rect.height * perigeePlacard.transform.localScale.y;
-        Vector2 offsetVector = shipElements.Perigee.normalized * 
-            Mathf.Sqrt(Mathf.Pow(width/2 , 2) + Mathf.Pow(height/2, 2));
+        foreach (Encounter encounter in encounters.maneuverEncounters)
+        {
+            drawPatchedConics(encounter, Color.cyan);
+        }
         
-        perigeeButton.transform.position = shipElements.GlobalTransformationVector + shipElements.Perigee + offsetVector;
-        perigeeButton.transform.localScale = new Vector3(GlobalElements.zoomLevel/ GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-
-        perigeePlacard.transform.position = shipElements.GlobalTransformationVector + shipElements.Perigee + offsetVector;
-        perigeePlacard.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-        perigeePlacard.transform.rotation = Quaternion.AngleAxis(Mathf.Atan2(shipElements.Perigee.y, shipElements.Perigee.x) * Mathf.Rad2Deg - 45, Vector3.forward);
-
-        foreach (Tuple<Vector2, GameObject> tuple in encounterIcons){
-            tuple.item2.transform.position = tuple.item1 + shipElements.GlobalTransformationVector;
-        }
-
-        if (onEscapeTrajectory)
-        {
-            if (shipElements.Clockwise)
-            {
-                if(shipElements.TrueAnomaly < 0)
-                {
-                    perigeePlacard.transform.localScale = new Vector3(0, 0, 0);
-                    perigeeButton.transform.localScale = new Vector3(0, 0, 0);
-                }
-            }
-            else
-            {
-                if(shipElements.TrueAnomaly > 0)
-                {
-                    perigeePlacard.transform.localScale = new Vector3(0, 0, 0);
-                    perigeeButton.transform.localScale = new Vector3(0, 0, 0);
-                }
-            }
-        }
-
-        switch (shipElements.OrbitType)
-        {
-            case OrbitTypes.circular:
-                apogeeButton.transform.position = shipElements.GlobalTransformationVector + shipElements.Apogee - offsetVector;
-                apogeeButton.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-
-                apogeePlacard.transform.position = shipElements.GlobalTransformationVector + shipElements.Apogee - offsetVector;
-                apogeePlacard.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-                apogeePlacard.transform.rotation = Quaternion.AngleAxis(Mathf.Atan2(shipElements.Apogee.y, shipElements.Apogee.x) * Mathf.Rad2Deg - 45, Vector3.forward);
-                break;
-            case OrbitTypes.elliptical:
-                apogeeButton.transform.position = shipElements.GlobalTransformationVector + shipElements.Apogee - offsetVector;
-                apogeeButton.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-
-                apogeePlacard.transform.position = shipElements.GlobalTransformationVector + shipElements.Apogee - offsetVector;
-                apogeePlacard.transform.localScale = new Vector3(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST, 0);
-                apogeePlacard.transform.rotation = Quaternion.AngleAxis(Mathf.Atan2(shipElements.Apogee.y, shipElements.Apogee.x) * Mathf.Rad2Deg - 45, Vector3.forward);
-                break;
-            default:
-                apogeePlacard.transform.localScale = new Vector3(0, 0, 0);
-                apogeeButton.transform.localScale = new Vector3(0, 0, 0);
-                break;
-        }*/
     }
 
     private Vector2 drawOrbitRadiusHelper(Vector2 eccentricity, double globalRotationAngle, double semiMajorAxis, double trueAnomaly)
@@ -139,227 +81,283 @@ public class ShipPatchedConics : MonoBehaviour
         trueAnomaly = MiscHelperFuncs.convertTo360Angle(trueAnomaly);
         double radius = (semiMajorAxis * (1 - eccentricity.sqrMagnitude)) / (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
         return (float)radius * new Vector2((float)Math.Cos(trueAnomaly + globalRotationAngle), (float)Math.Sin(trueAnomaly + globalRotationAngle));
-        /*
-        double radius = (semiMajorAxis * (1 - Vector2.SqrMagnitude(eccentricity))) / (1 - eccentricity.magnitude * (Math.Cos(angle - globalRotationAngle + Math.PI)));
-        return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (float)radius;*/
+        
     }
 
-    public void drawPatchedConics(bool prediction, MassiveBodyElements currentMassiveBody, double startingTrueAnomaly, Vector2 globalTransformationVector, Vector2 eccentricity, double globalRotationAngle, double semiMajorAxis, bool clockwise, Color color)
+    public void drawPatchedConics(Encounter encounter, Color color)
     {
-
-        //Display
-        bool breakout = false;
-        double angle = startingTrueAnomaly;
-        switch (clockwise)
+        //No other encounters
+        
+        double fastAngle = Math.PI;
+        while (fastAngle > -Math.PI)
         {
-            case true:
-                while (angle > (2 * -Math.PI) && !breakout)
-                {
-
-                    lineDrawer.DrawLine(drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle) + globalTransformationVector,
-                        drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle + 0.01f) + globalTransformationVector, color);
-                    angle -= 0.01d;
-                }
-                angle = 0;
-                while (angle > startingTrueAnomaly && !breakout)
-                {
-
-                    lineDrawer.DrawLine(drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle) + globalTransformationVector,
-                        drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle + 0.01f) + globalTransformationVector, color);
-                    angle -= 0.01d;
-                }
-                break;
-            case false:
-                while (angle < (2 * Math.PI) && !breakout)
-                {
-
-                    lineDrawer.DrawLine(drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle) + globalTransformationVector,
-                        drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle + 0.01f) + globalTransformationVector, color);
-                    angle += 0.01d;
-                }
-                angle = 0;
-                while (angle < startingTrueAnomaly && !breakout)
-                {
-
-                    lineDrawer.DrawLine(drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle) + globalTransformationVector,
-                        drawOrbitRadiusHelper(eccentricity, globalRotationAngle, semiMajorAxis, angle + 0.01f) + globalTransformationVector, color);
-                    angle += 0.01d;
-                }
-                break;
-            default:
-                break;
+            lineDrawer.DrawLine(drawOrbitRadiusHelper(encounter.GravElements.Eccentricity, encounter.GravElements.GlobalRotationAngle, encounter.GravElements.SemiMajorAxis, fastAngle) + encounter.GravElements.GlobalTransformationVector,
+                drawOrbitRadiusHelper(encounter.GravElements.Eccentricity, encounter.GravElements.GlobalRotationAngle, encounter.GravElements.SemiMajorAxis, fastAngle - 0.01) + encounter.GravElements.GlobalTransformationVector, color);
+            fastAngle -= 0.01;
         }
-    }
-
-    //Takes in an amount of time x and a celestial body and predicts where it will be in x amount of time
-    private Vector2 predictedPosition(double time, GravityElements celestialBody)
-    {
-        return new Vector2();
     }
 
     //Finds all encounters within one orbit of the craft
     public void updateEncounters()
     {
-        if (encounters == null)
-        {
-            return;
-        }
+        
+        encounters.predictedEncounters.Clear();
 
-        encounters.Clear();
-        GravityElementsClass firstEncounter;
-        MassiveBodyElements shipsMassiveBody = shipElements.massiveBody.GetComponent<MassiveBodyElements>();
-        GravityElements shipsMassivebodyGravityElements = shipElements.massiveBody.GetComponent<GravityElements>();
+        //initial setup
+        GravityElementsClass currentShipsGravityElements = shipElements.getClassVersion();
+        GravityElementsClass currentMassiveBodyGravityElements = shipElements.massiveBody.GetComponent<GravityElements>().getClassVersion();
+        MassiveBodyElements currentMassiveBody = shipElements.massiveBody.GetComponent<MassiveBodyElements>();
 
+        iterations = 0;
+
+        predictAnEncounter(currentShipsGravityElements, currentMassiveBodyGravityElements, currentMassiveBody);
+        
+    }
+
+    private void predictAnEncounter(GravityElementsClass currentShipsGravityElements, GravityElementsClass currentMassiveBodyGravityElements, MassiveBodyElements currentMassiveBodyElements)
+    {
+        iterations++;
+
+        //will we ever encounter anything?
         double time = 0;
-        double orbitalPeriod = calculatePeriod(shipElements.OrbitType, shipElements.SemiMajorAxis, shipElements.Mu);
-
-        List<GameObject> satelites = shipElements.massiveBody.GetComponent<MassiveBodyElements>().satelites;
+        double orbitalPeriod = calculatePeriod(currentShipsGravityElements.OrbitType, currentShipsGravityElements.SemiMajorAxis, currentShipsGravityElements.Mu);
+        List<GameObject> satelites = currentMassiveBodyElements.satelites;
         GameObject encounteredMassiveBody = null;
-
-        while (time < orbitalPeriod && encounteredMassiveBody == null)
+        while(time < orbitalPeriod && encounteredMassiveBody == null)
         {
             time += 0.01;
-            //Are we going to exit a soi?
-            if (shipElements.calculateLocalPositionAtFutureTime(time).magnitude > shipsMassiveBody.SphereOfInfluence)
+            //are we going to exit this soi?
+            if(currentShipsGravityElements.calculateLocalPositionAtFutureTime(time).magnitude > currentMassiveBodyElements.SphereOfInfluence)
             {
-                encounteredMassiveBody = shipElements.massiveBody.GetComponent<GravityElements>().massiveBody;
-                Debug.Log("Exiting to " + encounteredMassiveBody.name + "'s soi");
-            }
-
-            foreach (GameObject satelite in satelites)
-            {
-                //Are we going to enter a new soi?
-                Vector2 shipPredictedLocalPositionRelativeToCurrentMassiveBody;
-                Vector2 satelitePredictedLocalPositionRelativeToCurrentMassiveBody;
-
-                satelitePredictedLocalPositionRelativeToCurrentMassiveBody = satelite.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(time);
-                shipPredictedLocalPositionRelativeToCurrentMassiveBody = shipElements.calculateLocalPositionAtFutureTime(time);
-                if (Vector2.Distance(satelitePredictedLocalPositionRelativeToCurrentMassiveBody, shipPredictedLocalPositionRelativeToCurrentMassiveBody) < satelite.GetComponent<MassiveBodyElements>().SphereOfInfluence)
-                {
-                    encounteredMassiveBody = satelite;
-                    Debug.Log("Entering " + encounteredMassiveBody.name + "'s soi");
-                }
-            }
-
-            if (time > 10000)//prevent infinite loops in hyperbolic cases
-            {
+                encounteredMassiveBody = currentMassiveBodyGravityElements.massiveBody;
                 break;
             }
 
+            //Are we going to enter a new soi?
+            foreach (GameObject satelite in satelites)
+            {
+                Vector2 satelitesFuturePosition = satelite.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(time);
+                Vector2 shipsFuturePosition = currentShipsGravityElements.calculateLocalPositionAtFutureTime(time);
+                if(Vector2.Distance(satelitesFuturePosition, shipsFuturePosition) < satelite.GetComponent<MassiveBodyElements>().SphereOfInfluence)
+                {
+                    encounteredMassiveBody = satelite;
+                    break;
+                }
+            }
+
+            //Are we far enough that we're probably not going to run into anything soon?
+            if(time > 10000)
+            {
+                break;
+            }
         }
 
+        
+        //no new encounters
         if (encounteredMassiveBody == null)
         {
-            return;
+            Encounter currentEncounter = new Encounter(currentShipsGravityElements, currentShipsGravityElements.TrueAnomaly, double.PositiveInfinity); //always add the current encounter
+            encounters.predictedEncounters.Enqueue(currentEncounter);
         }
 
-        Tuple<Vector2, Vector2> returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
-        Vector2 encounteredMassiveBodyPredictedGlobalPosition = returnInfo.item1;
-        Vector2 encounteredMassiveBodyPredictedGlobalVelocity = returnInfo.item2;
+        //Found an encounter!
+        else
+        {
+            Encounter currentEncounter = new Encounter(currentShipsGravityElements, currentShipsGravityElements.TrueAnomaly, double.PositiveInfinity); //always add the current encounter
+            encounters.predictedEncounters.Enqueue(currentEncounter);
 
-        returnInfo = shipElements.calculateLocalPositionAndVelocityAtFutureTime(time);
-        Vector2 shipPredictedLocalPosition = returnInfo.item1;
-        Vector2 shipPredictedLocalVelocity = returnInfo.item2;
+            Tuple<Vector2, Vector2> returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+            Vector2 encounteredMassiveBodyPredictedGlobalPosition = returnInfo.item1;
+            Vector2 encounteredMassiveBodyPredictedGlobalVelocity = returnInfo.item2;
 
-        returnInfo = shipElements.massiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
-        Vector2 currentMassiveBodyPredictedGlobalPosition = returnInfo.item1;
-        Vector2 currentMassiveBodyPredictedGlobalVelcity = returnInfo.item2;
+            returnInfo = currentShipsGravityElements.calculateLocalPositionAndVelocityAtFutureTime(time);
+            Vector2 shipPredictedLocalPosition = returnInfo.item1;
+            Vector2 shipPredictedLocalVelocity = returnInfo.item2;
 
-        Vector2 shipPredictedEncounterLocalPosition = (shipPredictedLocalPosition + currentMassiveBodyPredictedGlobalPosition) - encounteredMassiveBodyPredictedGlobalPosition;
-        Vector2 shipPredictedEncounterLocalVelocity = (shipPredictedLocalVelocity + currentMassiveBodyPredictedGlobalVelcity) - encounteredMassiveBodyPredictedGlobalVelocity;
-        Vector2 predictedGlobalTransformationVector = encounteredMassiveBodyPredictedGlobalPosition;
+            returnInfo = currentMassiveBodyGravityElements.calculateGlobalPositionAndVelocityAtFutureTime(time);
+            Vector2 currentMassiveBodyPredictedGlobalPosition = returnInfo.item1;
+            Vector2 currentMassiveBodyPredictedGlobalVelcity = returnInfo.item2;
 
-        firstEncounter = calculateInitialOrbitalElements(shipPredictedEncounterLocalPosition, shipPredictedEncounterLocalVelocity, encounteredMassiveBody);
+            Vector2 shipPredictedEncounterLocalPosition = (shipPredictedLocalPosition + currentMassiveBodyPredictedGlobalPosition) - encounteredMassiveBodyPredictedGlobalPosition;
+            Vector2 shipPredictedEncounterLocalVelocity = (shipPredictedLocalVelocity + currentMassiveBodyPredictedGlobalVelcity) - encounteredMassiveBodyPredictedGlobalVelocity;
+            Vector2 predictedGlobalTransformationVector = encounteredMassiveBodyPredictedGlobalPosition;
+            
 
-        encounters.Enqueue(firstEncounter);
+            GravityElementsClass newShipsGravityElements = calculateInitialOrbitalElements(shipPredictedEncounterLocalPosition, shipPredictedEncounterLocalVelocity, encounteredMassiveBody);
+            GravityElementsClass newMassiveBodysGravityElements = newShipsGravityElements.massiveBody.GetComponent<GravityElements>().getClassVersion();
+            returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+            newMassiveBodysGravityElements.Position = returnInfo.item1;
+            newMassiveBodysGravityElements.velocity = returnInfo.item2;
+            MassiveBodyElements newMassiveBody = newShipsGravityElements.massiveBody.GetComponent<MassiveBodyElements>();
+            foreach(GameObject satelite in newMassiveBody.satelites)
+            {
+                returnInfo = satelite.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+                satelite.GetComponent<GravityElements>().Position = returnInfo.item1;
+                satelite.GetComponent<GravityElements>().velocity = returnInfo.item2;
+            }
+
+            Debug.Log("-------------------");
+            Debug.Log("Encounter info dump");
+            Debug.Log("Eccentricity: " + newShipsGravityElements.Eccentricity);
+            Debug.Log("Mechanical Energy: " + newShipsGravityElements.MechanicalEnergy);
+            Debug.Log("SemiMajor Axis: " + newShipsGravityElements.SemiMajorAxis);
+            Debug.Log("SemiLatus Rectum: " + newShipsGravityElements.SemiLatusRectum);
+            Debug.Log("Perigee: " + newShipsGravityElements.Perigee);
+            Debug.Log("Apogee: " + newShipsGravityElements.Apogee);
+            Debug.Log("Center: " + newShipsGravityElements.Center);
+            Debug.Log("Global Rotation Angle: " + newShipsGravityElements.GlobalRotationAngle);
+            Debug.Log("Clockwise: " + newShipsGravityElements.Clockwise);
+            Debug.Log("Towards Perigee: " + newShipsGravityElements.TowardsPerigee);
+            Debug.Log("TrueAnomaly: " + newShipsGravityElements.TrueAnomaly);
+            Debug.Log("EccentricAnomaly: " + newShipsGravityElements.EccentricAnomaly);
+            Debug.Log("Anomaly At Epoch: " + newShipsGravityElements.AnomalyAtEpoch);
+            Debug.Log("Mean Anomaly: " + newShipsGravityElements.MeanAnomaly);
+            Debug.Log("Angular Momentum: " + newShipsGravityElements.AngularMomentum);
+            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);
+
+            if (iterations < MAX_ITERATIONS)
+            {
+                predictAnEncounter(newShipsGravityElements, newMassiveBodysGravityElements, newMassiveBody);
+            }
+        }
+    }
+
+    private void predictAManeuver(GravityElementsClass currentShipsGravityElements, GravityElementsClass currentMassiveBodyGravityElements, MassiveBodyElements currentMassiveBodyElements)
+    {
+        iterations++;
+
+        //will we ever encounter anything?
+        double time = 0;
+        double orbitalPeriod = calculatePeriod(currentShipsGravityElements.OrbitType, currentShipsGravityElements.SemiMajorAxis, currentShipsGravityElements.Mu);
+        List<GameObject> satelites = currentMassiveBodyElements.satelites;
+        GameObject encounteredMassiveBody = null;
+        while (time < orbitalPeriod && encounteredMassiveBody == null)
+        {
+            time += 0.01;
+            //are we going to exit this soi?
+            if (currentShipsGravityElements.calculateLocalPositionAtFutureTime(time).magnitude > currentMassiveBodyElements.SphereOfInfluence)
+            {
+                encounteredMassiveBody = currentMassiveBodyGravityElements.massiveBody;
+                break;
+            }
+
+            //Are we going to enter a new soi?
+            foreach (GameObject satelite in satelites)
+            {
+                Vector2 satelitesFuturePosition = satelite.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(time);
+                Vector2 shipsFuturePosition = currentShipsGravityElements.calculateLocalPositionAtFutureTime(time);
+                if (Vector2.Distance(satelitesFuturePosition, shipsFuturePosition) < satelite.GetComponent<MassiveBodyElements>().SphereOfInfluence)
+                {
+                    encounteredMassiveBody = satelite;
+                    break;
+                }
+            }
+
+            //Are we far enough that we're probably not going to run into anything soon?
+            if (time > 10000)
+            {
+                break;
+            }
+        }
 
 
+        //no new encounters
+        if (encounteredMassiveBody == null)
+        {
+            Encounter currentEncounter = new Encounter(currentShipsGravityElements, currentShipsGravityElements.TrueAnomaly, double.PositiveInfinity); //always add the current encounter
+            encounters.maneuverEncounters.Enqueue(currentEncounter);
+        }
 
+        //Found an encounter!
+        else
+        {
+            Encounter currentEncounter = new Encounter(currentShipsGravityElements, currentShipsGravityElements.TrueAnomaly, double.PositiveInfinity); //always add the current encounter
+            encounters.maneuverEncounters.Enqueue(currentEncounter);
+
+            Tuple<Vector2, Vector2> returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+            Vector2 encounteredMassiveBodyPredictedGlobalPosition = returnInfo.item1;
+            Vector2 encounteredMassiveBodyPredictedGlobalVelocity = returnInfo.item2;
+
+            returnInfo = currentShipsGravityElements.calculateLocalPositionAndVelocityAtFutureTime(time);
+            Vector2 shipPredictedLocalPosition = returnInfo.item1;
+            Vector2 shipPredictedLocalVelocity = returnInfo.item2;
+
+            returnInfo = currentMassiveBodyGravityElements.calculateGlobalPositionAndVelocityAtFutureTime(time);
+            Vector2 currentMassiveBodyPredictedGlobalPosition = returnInfo.item1;
+            Vector2 currentMassiveBodyPredictedGlobalVelcity = returnInfo.item2;
+
+            Vector2 shipPredictedEncounterLocalPosition = (shipPredictedLocalPosition + currentMassiveBodyPredictedGlobalPosition) - encounteredMassiveBodyPredictedGlobalPosition;
+            Vector2 shipPredictedEncounterLocalVelocity = (shipPredictedLocalVelocity + currentMassiveBodyPredictedGlobalVelcity) - encounteredMassiveBodyPredictedGlobalVelocity;
+            Vector2 predictedGlobalTransformationVector = encounteredMassiveBodyPredictedGlobalPosition;
+
+
+            GravityElementsClass newShipsGravityElements = calculateInitialOrbitalElements(shipPredictedEncounterLocalPosition, shipPredictedEncounterLocalVelocity, encounteredMassiveBody);
+            GravityElementsClass newMassiveBodysGravityElements = newShipsGravityElements.massiveBody.GetComponent<GravityElements>().getClassVersion();
+            returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+            newMassiveBodysGravityElements.Position = returnInfo.item1;
+            newMassiveBodysGravityElements.velocity = returnInfo.item2;
+            MassiveBodyElements newMassiveBody = newShipsGravityElements.massiveBody.GetComponent<MassiveBodyElements>();
+            foreach (GameObject satelite in newMassiveBody.satelites)
+            {
+                returnInfo = satelite.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
+                satelite.GetComponent<GravityElements>().Position = returnInfo.item1;
+                satelite.GetComponent<GravityElements>().velocity = returnInfo.item2;
+            }
+
+            Debug.Log("-------------------");
+            Debug.Log("Encounter info dump");
+            Debug.Log("Eccentricity: " + newShipsGravityElements.Eccentricity);
+            Debug.Log("Mechanical Energy: " + newShipsGravityElements.MechanicalEnergy);
+            Debug.Log("SemiMajor Axis: " + newShipsGravityElements.SemiMajorAxis);
+            Debug.Log("SemiLatus Rectum: " + newShipsGravityElements.SemiLatusRectum);
+            Debug.Log("Perigee: " + newShipsGravityElements.Perigee);
+            Debug.Log("Apogee: " + newShipsGravityElements.Apogee);
+            Debug.Log("Center: " + newShipsGravityElements.Center);
+            Debug.Log("Global Rotation Angle: " + newShipsGravityElements.GlobalRotationAngle);
+            Debug.Log("Clockwise: " + newShipsGravityElements.Clockwise);
+            Debug.Log("Towards Perigee: " + newShipsGravityElements.TowardsPerigee);
+            Debug.Log("TrueAnomaly: " + newShipsGravityElements.TrueAnomaly);
+            Debug.Log("EccentricAnomaly: " + newShipsGravityElements.EccentricAnomaly);
+            Debug.Log("Anomaly At Epoch: " + newShipsGravityElements.AnomalyAtEpoch);
+            Debug.Log("Mean Anomaly: " + newShipsGravityElements.MeanAnomaly);
+            Debug.Log("Angular Momentum: " + newShipsGravityElements.AngularMomentum);
+            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);
+
+            if (iterations < MAX_ITERATIONS)
+            {
+                predictAManeuver(newShipsGravityElements, newMassiveBodysGravityElements, newMassiveBody);
+            }
+        }
     }
 
     public void updatePotentialEncounters(Vector2 maneuverPosition, Vector2 maneuverVelocity)
     {
-        if (potentialEncounters == null)
+        if (encounters.maneuverEncounters == null)
         {
             return;
         }
 
-        GravityElementsClass currentEncounter = calculateInitialOrbitalElements(maneuverPosition, maneuverVelocity, shipElements.massiveBody);
+        GravityElementsClass currentEncounterGravityElements = calculateInitialOrbitalElements(maneuverPosition, maneuverVelocity, shipElements.massiveBody);
+        
+        encounters.maneuverEncounters.Clear();
+        
+        //initial setup
+        GravityElementsClass currentShipsGravityElements = currentEncounterGravityElements;
+        GravityElementsClass currentMassiveBodyGravityElements = shipElements.massiveBody.GetComponent<GravityElements>().getClassVersion();
+        MassiveBodyElements currentMassiveBody = shipElements.massiveBody.GetComponent<MassiveBodyElements>();
 
-        potentialEncounters.Clear();
-        potentialEncounters.Enqueue(currentEncounter);
+        iterations = 0;
 
-        GravityElementsClass firstEncounter;
-        MassiveBodyElements shipsMassiveBody = currentEncounter.massiveBody.GetComponent<MassiveBodyElements>();
-        GravityElements shipsMassivebodyGravityElements = currentEncounter.massiveBody.GetComponent<GravityElements>();
+        predictAManeuver(currentShipsGravityElements, currentMassiveBodyGravityElements, currentMassiveBody);
 
-        double time = 0;
-        double orbitalPeriod = calculatePeriod(currentEncounter.OrbitType, currentEncounter.SemiMajorAxis, currentEncounter.Mu);
 
-        List<GameObject> satelites = currentEncounter.massiveBody.GetComponent<MassiveBodyElements>().satelites;
-        GameObject encounteredMassiveBody = null;
 
-        while (time < orbitalPeriod && encounteredMassiveBody == null)
-        {
-            time += 0.01;
-            //Are we going to exit a soi?
-            if (currentEncounter.calculateLocalPositionAtFutureTime(time).magnitude > shipsMassiveBody.SphereOfInfluence)
-            {
-                encounteredMassiveBody = currentEncounter.massiveBody.GetComponent<GravityElements>().massiveBody;
-                Debug.Log("Exiting to " + encounteredMassiveBody.name + "'s soi");
-            }
 
-            foreach (GameObject satelite in satelites)
-            {
-                //Are we going to enter a new soi?
-                Vector2 shipPredictedLocalPositionRelativeToCurrentMassiveBody;
-                Vector2 satelitePredictedLocalPositionRelativeToCurrentMassiveBody;
-
-                satelitePredictedLocalPositionRelativeToCurrentMassiveBody = satelite.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(time);
-                shipPredictedLocalPositionRelativeToCurrentMassiveBody = currentEncounter.calculateLocalPositionAtFutureTime(time);
-                if (Vector2.Distance(satelitePredictedLocalPositionRelativeToCurrentMassiveBody, shipPredictedLocalPositionRelativeToCurrentMassiveBody) < satelite.GetComponent<MassiveBodyElements>().SphereOfInfluence)
-                {
-                    encounteredMassiveBody = satelite;
-                    Debug.Log("Entering " + encounteredMassiveBody.name + "'s soi");
-                }
-            }
-
-            if (time > 10000)//prevent infinite loops in hyperbolic cases
-            {
-                break;
-            }
-
-        }
-
-        if (encounteredMassiveBody == null)
-        {
-            return;
-        }
-
-        Tuple<Vector2, Vector2> returnInfo = encounteredMassiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
-        Vector2 encounteredMassiveBodyPredictedGlobalPosition = returnInfo.item1;
-        Vector2 encounteredMassiveBodyPredictedGlobalVelocity = returnInfo.item2;
-
-        returnInfo = currentEncounter.calculateLocalPositionAndVelocityAtFutureTime(time);
-        Vector2 shipPredictedLocalPosition = returnInfo.item1;
-        Vector2 shipPredictedLocalVelocity = returnInfo.item2;
-
-        returnInfo = currentEncounter.massiveBody.GetComponent<GravityElements>().calculateGlobalPositionAndVelocityAtFutureTime(time);
-        Vector2 currentMassiveBodyPredictedGlobalPosition = returnInfo.item1;
-        Vector2 currentMassiveBodyPredictedGlobalVelcity = returnInfo.item2;
-
-        Vector2 shipPredictedEncounterLocalPosition = (shipPredictedLocalPosition + currentMassiveBodyPredictedGlobalPosition) - encounteredMassiveBodyPredictedGlobalPosition;
-        Vector2 shipPredictedEncounterLocalVelocity = (shipPredictedLocalVelocity + currentMassiveBodyPredictedGlobalVelcity) - encounteredMassiveBodyPredictedGlobalVelocity;
-        Vector2 predictedGlobalTransformationVector = encounteredMassiveBodyPredictedGlobalPosition;
-
-        firstEncounter = calculateInitialOrbitalElements(shipPredictedEncounterLocalPosition, shipPredictedEncounterLocalVelocity, encounteredMassiveBody);
-
-        //encounters.Enqueue(firstEncounter);
     }
 
     public void clearPotentialEncounters()
     {
-        potentialEncounters.Clear();
+        encounters.maneuverEncounters.Clear();
     }
 
     private double calculatePeriod(OrbitTypes orbitType, double semiMajorAxis, double mu)
@@ -439,25 +437,7 @@ public class ShipPatchedConics : MonoBehaviour
         //Calculate time at epoch
         gravityElements.TimeAtEpoch = OrbitalHelper.calculateTimeAtEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.SemiMajorAxis, gravityElements.Mu,
             gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
-
-        /*Debug.Log("Encounter info dump");
-        Debug.Log("Eccentricity: " + gravityElements.Eccentricity);
-        Debug.Log("Mechanical Energy: " + gravityElements.MechanicalEnergy);
-        Debug.Log("SemiMajor Axis: " + gravityElements.SemiMajorAxis);
-        Debug.Log("SemiLatus Rectum: " + gravityElements.SemiLatusRectum);
-        Debug.Log("Perigee: " + gravityElements.Perigee);
-        Debug.Log("Apogee: " + gravityElements.Apogee);
-        Debug.Log("Center: " + gravityElements.Center);
-        Debug.Log("Global Rotation Angle: " + gravityElements.GlobalRotationAngle);
-        Debug.Log("Clockwise: " + gravityElements.Clockwise);
-        Debug.Log("Towards Perigee: " + gravityElements.TowardsPerigee);
-        Debug.Log("TrueAnomaly: " + gravityElements.TrueAnomaly);
-        Debug.Log("EccentricAnomaly: " + gravityElements.EccentricAnomaly);
-        Debug.Log("Anomaly At Epoch: " + gravityElements.AnomalyAtEpoch);
-        Debug.Log("Mean Anomaly: " + gravityElements.MeanAnomaly);
-        Debug.Log("Angular Momentum: " + gravityElements.AngularMomentum);
-        Debug.Log("Time At Epoch: " + gravityElements.TimeAtEpoch);*/
-
+        
         return gravityElements;
     }
 }
