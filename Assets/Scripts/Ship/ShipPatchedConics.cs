@@ -16,10 +16,8 @@ public class ShipPatchedConics : MonoBehaviour
     private Encounters encounters;
 
     //Other behaviors
-    private ShipGravityBehavior ship;
     private SpriteRenderer spriteRenderer;
     private LineDrawer lineDrawer;
-    private NodeManager nodeManager;
 
     //Orbital POI
     public Button perigeeButton;
@@ -41,10 +39,8 @@ public class ShipPatchedConics : MonoBehaviour
         shipElements = GetComponent<GravityElements>();
         encounters = GetComponent<Encounters>();
 
-        ship = GetComponent<ShipGravityBehavior>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
         lineDrawer = GetComponentInChildren<LineDrawer>();
-        nodeManager = GetComponent<NodeManager>();
 
         updateEncounters();
     }

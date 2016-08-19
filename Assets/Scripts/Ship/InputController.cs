@@ -6,10 +6,7 @@ public class InputController : MonoBehaviour
 {
 
     private double oldTimeStep;
-    private ShipGravityBehavior shipGravityBehavior;
     private NodeManager nodeManager;
-    private ShipPatchedConics graphicsManager;
-    private GravityElements shipElements;
 
 
 
@@ -18,10 +15,7 @@ public class InputController : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        shipGravityBehavior = GetComponent<ShipGravityBehavior>();
         nodeManager = GetComponent<NodeManager>();
-        graphicsManager = GetComponent<ShipPatchedConics>();
-        shipElements = GetComponent<GravityElements>();
 
         Camera.main.orthographicSize = GlobalElements.zoomLevel;
     }
