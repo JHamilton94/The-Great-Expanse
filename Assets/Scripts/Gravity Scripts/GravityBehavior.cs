@@ -7,13 +7,13 @@ public class GravityBehavior : MonoBehaviour
 {
 
     public bool debugMode;
-    public GravityElements gravityElements;
-    private ShipPatchedConics shipPatchedConics;
+    protected GravityElements gravityElements;
+    protected ShipPatchedConics shipPatchedConics;
 
     private int sphereChangeImmunity;
 
     // Use this for initialization
-    void Start()
+    protected void Start()
     {
 
         //First time setup
@@ -22,8 +22,7 @@ public class GravityBehavior : MonoBehaviour
         gravityElements.TimeStep = GlobalElements.timeStep;
         gravityElements.Position = transform.position - gravityElements.MassiveBody.transform.position;
         sphereChangeImmunity = 0;
-
-
+        
         calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity);
 
         shipPatchedConics = GetComponent<ShipPatchedConics>();

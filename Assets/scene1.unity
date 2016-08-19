@@ -1342,7 +1342,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugMode: 0
-  gravityElements: {fileID: 0}
 --- !u!114 &635663956
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1582,7 +1581,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugMode: 0
-  gravityElements: {fileID: 0}
 --- !u!114 &650294572
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1985,7 +1983,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugMode: 0
-  gravityElements: {fileID: 0}
 --- !u!114 &935703525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3183,7 +3180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 516d02cf52b61b840a03a30cd01008ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  velocity: {x: 2, y: 0}
+  velocity: {x: -2, y: 0}
   massiveBody: {fileID: 635663950}
   gravitationalType: 0
 --- !u!4 &1436866969
@@ -3254,7 +3251,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugMode: 0
-  gravityElements: {fileID: 0}
 --- !u!114 &1436866973
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3266,9 +3262,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79b056742b03b39458ce607a8a176d24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hovering: 0
   nodePlacard: {fileID: 675298818}
   nodeButton: {fileID: 631094708}
   thrustVectorHandle: {fileID: 1094912918}
+  dragging: 0
 --- !u!114 &1436866974
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3777,7 +3775,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugMode: 0
-  gravityElements: {fileID: 0}
 --- !u!114 &1625118343
 MonoBehaviour:
   m_ObjectHideFlags: 0

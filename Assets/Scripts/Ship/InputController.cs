@@ -30,7 +30,7 @@ public class InputController : MonoBehaviour
         //Clicking a position in an orbit
         if (Input.GetButton("Fire1"))
         {
-            nodeManager.createManeuver();
+            nodeManager.createManeuver(Camera.main.ScreenToWorldPoint(Input.mousePosition));
         }
 
         //Time manipulation

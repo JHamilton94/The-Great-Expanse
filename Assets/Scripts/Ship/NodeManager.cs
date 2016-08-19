@@ -16,7 +16,7 @@ public class NodeManager : MonoBehaviour {
     
 	// Input data
     private float hoverDistanceTolerance;
-    private bool hovering;
+    public bool hovering;
 
     private Vector2 mouseLocation;
     private double mouseAltitude;
@@ -29,7 +29,7 @@ public class NodeManager : MonoBehaviour {
     public Button thrustVectorHandle;
 
     //dragged?
-    private bool dragging;
+    public bool dragging;
 
     //thrust
     private Vector2 thrustVector;
@@ -103,6 +103,7 @@ public class NodeManager : MonoBehaviour {
         ship.applyThrust(node.getManeuver());
 		thrustVector *= 0;
         patchedConics.clearPotentialEncounters();
+        patchedConics.updateEncounters();
 		node = null;
 	}
 
@@ -173,9 +174,11 @@ public class NodeManager : MonoBehaviour {
 
     public void stoppedDragging()
     {
-        createNode();
+        updateNode();
         dragging = false;
     }
+
+
 
     public void hover(Vector2 mouseLocation)
     {
@@ -190,7 +193,7 @@ public class NodeManager : MonoBehaviour {
         
         orbitalAltitude = OrbitalHelper.calculateAltitude(shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.SemiLatusRectum, mouseTrueAnomaly, shipElements.OrbitType);
 
-        if(mouseAltitude > orbitalAltitude - hoverDistanceTolerance && mouseAltitude < orbitalAltitude + hoverDistanceTolerance)
+        if(mouseAltitude > orbitalAltitude - hoverDistanceTolerance && mouseAltitude < orbitalAltitude + hoverDistanceTolerance && !dragging)
         {
             hovering = true;
         }
@@ -210,28 +213,16 @@ public class NodeManager : MonoBehaviour {
         }
     }
     
-    public void createManeuver()
+    public void createManeuver(Vector2 mousePosition)
     {
-        if (hovering)
+        if (node == null && hovering)
         {
-            //create a new node
-            if (node == null)
-            {
-                createNode();
-            }
-            //move an existing node
-            else if (node != null &&
-                !dragging
-                && Vector2.Distance(thrustVectorHandle.transform.position, MiscHelperFuncs.convertToVec2(Camera.main.ScreenToWorldPoint(Input.mousePosition))) >
-                thrustVectorHandle.GetComponent<CircleCollider2D>().radius * thrustVectorHandle.GetComponent<CircleCollider2D>().transform.localScale.x)
-            {
-
-                createNode();
-            }
+            createNode();
         }
-        else
+        else if(!dragging && hovering && Vector2.Distance(thrustVectorHandle.transform.position, mousePosition) > 
+            thrustVectorHandle.GetComponent<CircleCollider2D>().radius * thrustVectorHandle.GetComponent<CircleCollider2D>().transform.localScale.x)
         {
-            return;
+            createNode();
         }
     }
     
@@ -242,11 +233,6 @@ public class NodeManager : MonoBehaviour {
 
     public void updatePatchedConics()
     {
-        //update patched conics
-        bool predictedSideOfOrbit = OrbitalHelper.towardsPerigeeOrbit(node.getTrueAnomaly(), shipElements.Clockwise);
-        double velocityAngle = OrbitalHelper.calculateVelocityAngle(node.getNodePosition(), shipElements.Eccentricity, shipElements.SemiMajorAxis, node.getTrueAnomaly(), shipElements.GlobalRotationAngle, shipElements.Clockwise, predictedSideOfOrbit, shipElements.OrbitType);
-        double speed = OrbitalHelper.calculateSpeed(node.getNodePosition(), shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
-        
         patchedConics.updatePotentialEncounters(node.getManeuver());
     }
 
@@ -262,7 +248,22 @@ public class NodeManager : MonoBehaviour {
 
         Vector2 nodeVelocity = OrbitalHelper.assembleVelocityVector(nodeVelocityAngle, nodeSpeed);
 
-        Debug.Log("Node velocity: " + nodeVelocity);
+        GravityElementsClass newOrbit = calculateInitialOrbitalElements(nodePosition, nodeVelocity + thrustVector, shipElements.massiveBody);
+
+        node = new Node(newOrbit, mouseTrueAnomaly, nodePosition);
+
+        patchedConics.updatePotentialEncounters(node.getManeuver());
+    }
+
+    private void updateNode()
+    {
+        Vector2 nodePosition = node.getNodePosition();
+
+        bool nodeTowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(mouseTrueAnomaly, shipElements.Clockwise);
+        double nodeSpeed = OrbitalHelper.calculateSpeed(nodePosition, shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
+        double nodeVelocityAngle = OrbitalHelper.calculateVelocityAngle(nodePosition, shipElements.Eccentricity, shipElements.SemiMajorAxis, mouseTrueAnomaly, shipElements.GlobalRotationAngle, shipElements.Clockwise, nodeTowardsPerigee, shipElements.OrbitType);
+
+        Vector2 nodeVelocity = OrbitalHelper.assembleVelocityVector(nodeVelocityAngle, nodeSpeed);
 
         GravityElementsClass newOrbit = calculateInitialOrbitalElements(nodePosition, nodeVelocity + thrustVector, shipElements.massiveBody);
 

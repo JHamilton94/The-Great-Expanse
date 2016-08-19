@@ -132,6 +132,7 @@ public class ShipPatchedConics : MonoBehaviour
             //Are we going to enter a new soi?
             foreach (GameObject satelite in satelites)
             {
+                
                 Vector2 satelitesFuturePosition = satelite.GetComponent<GravityElements>().calculateLocalPositionAtFutureTime(time);
                 Vector2 shipsFuturePosition = currentShipsGravityElements.calculateLocalPositionAtFutureTime(time);
                 if(Vector2.Distance(satelitesFuturePosition, shipsFuturePosition) < satelite.GetComponent<MassiveBodyElements>().SphereOfInfluence)
@@ -142,7 +143,7 @@ public class ShipPatchedConics : MonoBehaviour
             }
 
             //Are we far enough that we're probably not going to run into anything soon?
-            if(time > 10000)
+            if(time > 100)
             {
                 break;
             }
@@ -192,7 +193,7 @@ public class ShipPatchedConics : MonoBehaviour
                 satelite.GetComponent<GravityElements>().velocity = returnInfo.item2;
             }
 
-            Debug.Log("-------------------");
+            /*Debug.Log("-------------------");
             Debug.Log("Encounter info dump");
             Debug.Log("Eccentricity: " + newShipsGravityElements.Eccentricity);
             Debug.Log("Mechanical Energy: " + newShipsGravityElements.MechanicalEnergy);
@@ -209,7 +210,7 @@ public class ShipPatchedConics : MonoBehaviour
             Debug.Log("Anomaly At Epoch: " + newShipsGravityElements.AnomalyAtEpoch);
             Debug.Log("Mean Anomaly: " + newShipsGravityElements.MeanAnomaly);
             Debug.Log("Angular Momentum: " + newShipsGravityElements.AngularMomentum);
-            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);
+            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);*/
 
             if (iterations < MAX_ITERATIONS)
             {
@@ -250,7 +251,7 @@ public class ShipPatchedConics : MonoBehaviour
             }
 
             //Are we far enough that we're probably not going to run into anything soon?
-            if (time > 10000)
+            if (time > 100)
             {
                 break;
             }
@@ -300,7 +301,7 @@ public class ShipPatchedConics : MonoBehaviour
                 satelite.GetComponent<GravityElements>().velocity = returnInfo.item2;
             }
 
-            Debug.Log("-------------------");
+            /*Debug.Log("-------------------");
             Debug.Log("Encounter info dump");
             Debug.Log("Eccentricity: " + newShipsGravityElements.Eccentricity);
             Debug.Log("Mechanical Energy: " + newShipsGravityElements.MechanicalEnergy);
@@ -317,7 +318,7 @@ public class ShipPatchedConics : MonoBehaviour
             Debug.Log("Anomaly At Epoch: " + newShipsGravityElements.AnomalyAtEpoch);
             Debug.Log("Mean Anomaly: " + newShipsGravityElements.MeanAnomaly);
             Debug.Log("Angular Momentum: " + newShipsGravityElements.AngularMomentum);
-            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);
+            Debug.Log("Time At Epoch: " + newShipsGravityElements.TimeAtEpoch);*/
 
             if (iterations < MAX_ITERATIONS)
             {
