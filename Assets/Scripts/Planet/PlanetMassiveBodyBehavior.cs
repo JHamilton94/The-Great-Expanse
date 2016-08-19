@@ -28,11 +28,6 @@ public class PlanetMassiveBodyBehavior : MonoBehaviour
 
     }
 
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-
-    }
 
     private double calculateSphereOfInfluence(double semiMajorAxis, double smallMass, double bigmass)
     {

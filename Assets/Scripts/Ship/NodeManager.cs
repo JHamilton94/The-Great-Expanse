@@ -258,9 +258,11 @@ public class NodeManager : MonoBehaviour {
 
         bool nodeTowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(mouseTrueAnomaly, shipElements.Clockwise);
         double nodeSpeed = OrbitalHelper.calculateSpeed(nodePosition, shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
-        double nodeVelocityAngle = OrbitalHelper.calculateVelocityAngle(nodePosition, shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.TrueAnomaly, shipElements.GlobalRotationAngle, shipElements.Clockwise, nodeTowardsPerigee, shipElements.OrbitType);
+        double nodeVelocityAngle = OrbitalHelper.calculateVelocityAngle(nodePosition, shipElements.Eccentricity, shipElements.SemiMajorAxis, mouseTrueAnomaly, shipElements.GlobalRotationAngle, shipElements.Clockwise, nodeTowardsPerigee, shipElements.OrbitType);
 
         Vector2 nodeVelocity = OrbitalHelper.assembleVelocityVector(nodeVelocityAngle, nodeSpeed);
+
+        Debug.Log("Node velocity: " + nodeVelocity);
 
         GravityElementsClass newOrbit = calculateInitialOrbitalElements(nodePosition, nodeVelocity + thrustVector, shipElements.massiveBody);
 
