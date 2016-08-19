@@ -3,7 +3,7 @@ using System.Collections;
 using System;
 using UnityEngine.UI;
 
-public class MassiveBodyGraphicalManager : MonoBehaviour {
+public class MassiveBodyPatchedConics : MonoBehaviour {
 
     private GravityElements gravElements;
     private MassiveBodyElements massiveElements;

@@ -3,1134 +3,271 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 
-public class GravityBehavior : MonoBehaviour {
+public class GravityBehavior : MonoBehaviour
+{
 
     public bool debugMode;
     public GravityElements gravityElements;
-    
-	// Use this for initialization
-	void Start () {
+    private ShipPatchedConics shipPatchedConics;
 
-        gravityElements = this.GetComponent<GravityElements>();
-        switch (gravityElements.gravitationalType)
-        {
-            case GravitationalType.star:
-                gravityElements.massiveBody = GameObject.Find("black_hole");
-                break;
-            default:
-                gravityElements.MassiveBody = findInfluencingCelestialBody();
-                break;
-        }
-        //gravityElements.MassiveBody = findInfluencingCelestialBody();
-        Debug.Log(gravityElements.MassiveBody.transform.GetInstanceID());
-        gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
+    private int sphereChangeImmunity;
+
+    // Use this for initialization
+    void Start()
+    {
+
+        //First time setup
+        gravityElements = GetComponent<GravityElements>();
+        gravityElements.MassiveBody = findInfluencingCelestialBody(transform.position, gravityElements.velocity, null);
         gravityElements.TimeStep = GlobalElements.timeStep;
         gravityElements.Position = transform.position - gravityElements.MassiveBody.transform.position;
-        
-        //force the massive body to calculate its sphere of influence
+        sphereChangeImmunity = 0;
+
 
         calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity);
+
+        shipPatchedConics = GetComponent<ShipPatchedConics>();
     }
-    
-	// Update is called once per frame
-	void FixedUpdate () {
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+        //change spheres of influence
+        changeSpheresOfInfluence(this.transform.position, gravityElements.velocity, gravityElements.massiveBody);
+
+        //Calculate Next Orbital Position
         calculateNextOrbitalElements();
+        //Move to that orbital position
         moveShip();
-	}
+    }
 
     private void moveShip()
     {
         transform.position = gravityElements.Position + gravityElements.GlobalTransformationVector;
     }
 
-    public void applyThrust(Vector2 thrust)
+    public void applyThrust(GravityElementsClass newOrbit)
     {
-        calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity + thrust);
+        gravityElements.copyGravityElementsClass(newOrbit);
+        shipPatchedConics.updateEncounters();
     }
 
-    private GameObject findInfluencingCelestialBody()
+    //<summary>
+    //Takes in everything in global coordinates (relative to the origin(0, 0)) and returns the game object that is influencing the craft
+    //</summary>
+    //<param name="position"> Re-read the summary
+    //<param name="asdf"> Here's to the little guys
+    private GameObject findInfluencingCelestialBody(Vector2 position, Vector2 velocity, GameObject currentMassiveBody)
     {
-
-        GameObject returnObject;
         GameObject[] massiveBodies = GameObject.FindGameObjectsWithTag("MassiveBody");
-
-        List<GameObject> influencedBy = new List<GameObject>();
+        List<GameObject> spheresOfInfluence = new List<GameObject>();
 
         for (int i = 0; i < massiveBodies.Length; i++)
         {
-            double distance = Vector2.Distance(massiveBodies[i].transform.position, transform.position);
-            if (distance < massiveBodies[i].GetComponent<MassiveBodyElements>().SphereOfInfluence 
-                && massiveBodies[i].transform.GetInstanceID() != this.transform.GetInstanceID())
+            //quick and dirty calculation of altitude
+            double mu = massiveBodies[i].GetComponent<MassiveBodyElements>().mass * GlobalElements.GRAV_CONST;
+            Vector2 relativePosition = position - MiscHelperFuncs.convertToVec2(massiveBodies[i].transform.position);
+            Vector2 relativeVelocity = velocity + massiveBodies[i].GetComponent<GravityElements>().velocity;
+            Vector2 eccentricity = OrbitalHelper.calculateEccentricity(relativePosition, relativeVelocity, mu);
+            OrbitTypes orbitType = OrbitalHelper.determineOrbitType(eccentricity);
+            double mechanicalEnergy = OrbitalHelper.calculateMechanicalEnergy(relativePosition, relativeVelocity, mu, orbitType);
+            double semiMajorAxis = OrbitalHelper.calculateSemiMajorAxis(mechanicalEnergy, mu, orbitType);
+            Vector2 perigee = OrbitalHelper.calculatePerigee(semiMajorAxis, eccentricity, orbitType);
+            double semiLatusRectum = OrbitalHelper.calculateSemiLatusRectum(semiMajorAxis, eccentricity, perigee, orbitType); //semiMajorAxis * (1 - Math.Pow(eccentricity.magnitude, 2));
+            double trueAnomaly = Vector2.Angle(relativePosition, eccentricity);
+            trueAnomaly = MiscHelperFuncs.convertToRadians(trueAnomaly);
+            trueAnomaly = Math.Abs(MiscHelperFuncs.wrapAngle(trueAnomaly));
+            double altitude = Vector2.Distance(massiveBodies[i].transform.position, transform.position);//semiLatusRectum / (1 + eccentricity.magnitude * Math.Cos(trueAnomaly));
+
+
+
+            if (massiveBodies[i].GetComponent<MassiveBodyElements>().SphereOfInfluence > altitude && massiveBodies[i].transform.GetInstanceID() != this.transform.GetInstanceID())
             {
-                influencedBy.Add(massiveBodies[i]);
+                if (altitude < 0)
+                {
+                    Debug.Log("altitude: " + altitude);
+                    Debug.Log("semilatusrectum: " + semiLatusRectum);
+                    Debug.Log("Eccentricity: " + eccentricity.magnitude);
+                    Debug.Log("true anomaly: " + trueAnomaly);
+                }
+                spheresOfInfluence.Add(massiveBodies[i]);
+
             }
         }
 
-        returnObject = null;
-        double maxDistance = double.PositiveInfinity;
-        for(int i = 0; i < influencedBy.Count; i++)
+        double smallestDistance = double.PositiveInfinity;
+        GameObject returnGameObject = currentMassiveBody;
+        foreach (GameObject massiveBody in spheresOfInfluence)
         {
-            double distance = Vector2.Distance(influencedBy[i].transform.position, transform.position);
-            if(distance < maxDistance)
+            double distance = Vector2.Distance(massiveBody.transform.position, transform.position);
+            if (distance < smallestDistance)
             {
-                returnObject = influencedBy[i];
-                maxDistance = distance;
+                smallestDistance = distance;
+                returnGameObject = massiveBody;
             }
         }
-        return returnObject;
+
+        return returnGameObject;
     }
 
     private void calculateNextOrbitalElements()
     {
+        //update timestep
+        gravityElements.TimeStep = GlobalElements.timeStep;
+
         //Adjust tranformation vector
         gravityElements.GlobalTransformationVector = gravityElements.MassiveBody.transform.position;
 
         //Calculate next meanAnomaly
-        gravityElements.MeanAnomaly = calculateMeanAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.AnomalyAtEpoch, 
+        gravityElements.MeanAnomaly = OrbitalHelper.calculateMeanAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.AnomalyAtEpoch,
             gravityElements.TimeStep, gravityElements.TimeAtEpoch, gravityElements.Clockwise, gravityElements.Mu, gravityElements.OrbitType);
 
         //Calculate Eccentric Anomaly
-        gravityElements.EccentricAnomaly = calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, GlobalElements.GRAV_CONST, gravityElements.TimeStep, 
-            gravityElements.MeanAnomaly, gravityElements.EccentricAnomaly, gravityElements.Clockwise, gravityElements.OrbitType);
+        gravityElements.EccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, GlobalElements.GRAV_CONST, gravityElements.TimeStep, gravityElements.TimeAtEpoch,
+            gravityElements.MeanAnomaly, gravityElements.EccentricAnomaly, gravityElements.Mu, gravityElements.Clockwise, gravityElements.OrbitType);
 
         //CalculateTrueAnomaly
-        gravityElements.TrueAnomaly = calculateTrueAnomaly(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.MeanAnomaly, gravityElements.OrbitType);
+        gravityElements.TrueAnomaly = OrbitalHelper.calculateTrueAnomaly(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.MeanAnomaly, gravityElements.OrbitType);
 
         //Calculate Altitude
-        gravityElements.Altitude = calculateAltitude(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, gravityElements.TrueAnomaly, gravityElements.OrbitType);
+        gravityElements.Altitude = OrbitalHelper.calculateAltitude(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, gravityElements.TrueAnomaly, gravityElements.OrbitType);
 
         //Calculate positionVector
-        gravityElements.Position = calculatePosition(gravityElements.Perigee, gravityElements.TrueAnomaly, gravityElements.GlobalRotationAngle, gravityElements.Altitude, gravityElements.OrbitType);
+        gravityElements.Position = OrbitalHelper.calculatePosition(gravityElements.Perigee, gravityElements.TrueAnomaly, gravityElements.GlobalRotationAngle, gravityElements.Altitude, gravityElements.OrbitType);
 
         //Are we going towards the perigee?
-        gravityElements.TowardsPerigee = towardsPerigeeOrbit(gravityElements.MeanAnomaly, gravityElements.Clockwise, gravityElements.TimeAtEpoch, gravityElements.OrbitType);
+        gravityElements.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(gravityElements.MeanAnomaly, gravityElements.Clockwise);
 
         //Calculate velocity angle
-        gravityElements.VelocityAngle = calculateVelocityAngle(gravityElements.Position, gravityElements.Eccentricity, gravityElements.SemiMajorAxis, 
+        gravityElements.VelocityAngle = OrbitalHelper.calculateVelocityAngle(gravityElements.Position, gravityElements.Eccentricity, gravityElements.SemiMajorAxis,
             gravityElements.TrueAnomaly, gravityElements.GlobalRotationAngle, gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
 
         //Calculate Speed
-        gravityElements.Speed = calculateSpeed(gravityElements.Position, gravityElements.SemiMajorAxis, gravityElements.Mu, gravityElements.OrbitType);
+        gravityElements.Speed = OrbitalHelper.calculateSpeed(gravityElements.Position, gravityElements.SemiMajorAxis, gravityElements.Mu, gravityElements.OrbitType);
 
         //Calculate Velocity
-        gravityElements.velocity = assembleVelocityVector(gravityElements.VelocityAngle, gravityElements.Speed);
+        gravityElements.velocity = OrbitalHelper.assembleVelocityVector(gravityElements.VelocityAngle, gravityElements.Speed);
 
         //advance epoch
         gravityElements.AnomalyAtEpoch = gravityElements.MeanAnomaly;
 
         //Advance time
-        gravityElements.TimeAtEpoch = advanceTime(gravityElements.TimeAtEpoch, gravityElements.TimeStep, gravityElements.Clockwise, gravityElements.OrbitType);
+        gravityElements.TimeAtEpoch = OrbitalHelper.advanceTime(gravityElements.TimeAtEpoch, gravityElements.TimeStep, gravityElements.Clockwise, gravityElements.OrbitType);
+
+
     }
 
-    private double advanceTime(double timeAtEpoch, double timeStep, bool clockwise, OrbitTypes orbitType)
+    //<summary>
+    //Determines whether or not to change the sphere of influence then changes it
+    //</summary>
+    //<param name="position"> The position of the ship in global coordinates
+    //<param name="velocity"> The velocity relative to the current body being orbited
+    //<param name="the rest"> Fuck it you get the idea
+    //<returns> Returns nothing, like anyone who went to blockbuster after netflix got big
+    private void changeSpheresOfInfluence(Vector2 position, Vector2 velocity, GameObject currentMassiveBody)
     {
-        switch (orbitType)
+        GameObject newSphereOfInfluence = findInfluencingCelestialBody(position, velocity, currentMassiveBody);
+        //change spheres of influence
+        if (newSphereOfInfluence.transform.GetInstanceID() != currentMassiveBody.transform.GetInstanceID()
+            && sphereChangeImmunity < 1)
         {
-            case OrbitTypes.circular:
-                return double.PositiveInfinity;
-            case OrbitTypes.elliptical:
-                return double.PositiveInfinity;
-            case OrbitTypes.parabolic:
-                return double.PositiveInfinity;
-            case OrbitTypes.hyperbolic:
-                if (clockwise)
-                {
-                    return timeAtEpoch - timeStep;
-                }
-                else
-                {
-                    return timeAtEpoch + timeStep;
-                }
-            default:
-                return double.PositiveInfinity;
+            //From small to big
+            if (newSphereOfInfluence.GetComponent<MassiveBodyElements>().massiveBodyType > currentMassiveBody.GetComponent<MassiveBodyElements>().massiveBodyType)
+            {
+                gravityElements.massiveBody = newSphereOfInfluence;
+                calculateInitialOrbitalElements(position - MiscHelperFuncs.convertToVec2(newSphereOfInfluence.transform.position), velocity + currentMassiveBody.GetComponent<GravityElements>().velocity);
+                sphereChangeImmunity = 10;
+                shipPatchedConics.updateEncounters();
+            }
+            else //big to small
+            {
+                gravityElements.massiveBody = newSphereOfInfluence;
+                calculateInitialOrbitalElements(position - MiscHelperFuncs.convertToVec2(newSphereOfInfluence.transform.position), velocity - newSphereOfInfluence.GetComponent<GravityElements>().velocity);
+                sphereChangeImmunity = 10;
+                shipPatchedConics.updateEncounters();
+            }
+        }
+        else
+        {
+            sphereChangeImmunity--;
         }
     }
 
-    private Vector2 assembleVelocityVector(double velocityAngle, double speed)
-    {
-        return (new Vector2((float)Math.Cos(velocityAngle), (float)Math.Sin(velocityAngle)).normalized * (float)speed);
-    }
-
-    private double calculateVelocityAngle(Vector2 position, Vector2 eccentricity, double semiMajorAxis, 
-        double trueAnomaly, double globalRotationAngle, bool clockwise, bool towardsPerigee, OrbitTypes orbitType)
-    {
-        double returnVelocityAngle = 0;
-        double trueAnomalyModifier = 0;
-        double alpha = 0;
-        double k = 0;
-
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                //find new velocity vector
-                k = position.magnitude / (semiMajorAxis);
-                alpha = Math.Acos(((2 - (2 * Vector2.SqrMagnitude(eccentricity))) /
-                    (k * (2 - k))) - 1);
-                trueAnomalyModifier = (Math.PI - alpha) / 2;
-                if (clockwise)
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-
-                    }
-                }
-                else
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                    }
-                }
-                break;
-            case OrbitTypes.elliptical:
-                //find new velocity vector
-                k = position.magnitude / (semiMajorAxis);
-                alpha = Math.Acos(((2 - (2 * Vector2.SqrMagnitude(eccentricity))) /
-                    (k * (2 - k))) - 1);
-
-                trueAnomalyModifier = (Math.PI - alpha) / 2;
-
-                if (clockwise)
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-
-                    }
-                }
-                else
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                    }
-                }
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                //find new velocity vector
-                k = position.magnitude / (semiMajorAxis);
-                alpha = Math.Acos(((2 - (2 * Vector2.SqrMagnitude(eccentricity))) /
-                    (k * (2 - k))) - 1);
-
-                trueAnomalyModifier = (Math.PI - alpha) / 2;
-
-                if (clockwise)
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-                    }
-                }
-                else
-                {
-                    if (towardsPerigee)
-                    {
-                        returnVelocityAngle = trueAnomaly - trueAnomalyModifier + globalRotationAngle;
-                        returnVelocityAngle -= Math.PI;
-                    }
-                    else
-                    {
-                        returnVelocityAngle = trueAnomaly + trueAnomalyModifier + globalRotationAngle;
-                    }
-                }
-                break;
-        }
-        return returnVelocityAngle;
-    }
-
-    private bool towardsPerigeeOrbit(double meanAnomaly, bool clockwise, double timeAtEpoch, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return (clockwise && meanAnomaly > 0) || (!clockwise && meanAnomaly < 0);
-            case OrbitTypes.elliptical:
-                return (clockwise && meanAnomaly > 0) || (!clockwise && meanAnomaly < 0);
-            case OrbitTypes.parabolic:
-                return (clockwise && timeAtEpoch > 0) || (!clockwise && timeAtEpoch < 0);
-            case OrbitTypes.hyperbolic:
-                return (clockwise && timeAtEpoch > 0) || (!clockwise && timeAtEpoch < 0);
-            default:
-                return (clockwise && meanAnomaly > 0) || (!clockwise && meanAnomaly < 0);
-
-        }
-    }
-
-    private Vector2 calculatePosition(Vector2 perigee, double trueAnomaly, double globalRotationAngle, double altitude, OrbitTypes orbitType)
-    {
-        Vector2 returnPosition = Vector2.right * float.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnPosition = new Vector2((float)Math.Cos(trueAnomaly + globalRotationAngle), (float)Math.Sin(trueAnomaly + globalRotationAngle));
-                returnPosition = returnPosition.normalized * (float)altitude;
-                break;
-            case OrbitTypes.elliptical:
-                returnPosition = new Vector2((float)Math.Cos(trueAnomaly + globalRotationAngle), (float)Math.Sin(trueAnomaly + globalRotationAngle));
-                returnPosition = returnPosition.normalized * (float)altitude;
-                break;
-            case OrbitTypes.parabolic:
-                returnPosition = new Vector2((float)Math.Cos(trueAnomaly + globalRotationAngle), (float)Math.Sin(trueAnomaly + globalRotationAngle));
-                returnPosition = returnPosition.normalized * (float)altitude;
-                break;
-            case OrbitTypes.hyperbolic:
-                returnPosition = new Vector2((float)Math.Cos(trueAnomaly + globalRotationAngle), (float)Math.Sin(trueAnomaly + globalRotationAngle));
-                returnPosition = returnPosition.normalized * (float)altitude;
-                break;
-        }
-        return returnPosition;
-    }
-
-    private double calculateTrueAnomaly(Vector2 eccentricity, double eccentricAnomaly, double meanAnomaly, OrbitTypes orbitType)
-    {
-        double returnTrueAnomaly = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                //calculate true anomaly
-                returnTrueAnomaly = Math.Acos(
-                    (Math.Cos(eccentricAnomaly) - eccentricity.magnitude) /
-                    (1 - (eccentricity.magnitude * Math.Cos(eccentricAnomaly)))
-                    );
-
-                if (meanAnomaly < 0)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                }
-                break;
-            case OrbitTypes.elliptical:
-                //calculate true anomaly
-                returnTrueAnomaly = Math.Acos(
-                    (Math.Cos(eccentricAnomaly) - eccentricity.magnitude) /
-                    (1 - (eccentricity.magnitude * Math.Cos(eccentricAnomaly)))
-                    );
-                if(meanAnomaly < 0)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                }
-                break;
-            case OrbitTypes.parabolic:
-                returnTrueAnomaly = Math.Atan(
-                    (Math.Sqrt((eccentricity.magnitude + 1) /
-                    (eccentricity.magnitude - 1))) *
-                    Math.Tanh(eccentricAnomaly / 2)
-                    );
-                if (meanAnomaly < 0)
-                {
-                    returnTrueAnomaly = -returnTrueAnomaly;
-                }
-                break;
-            case OrbitTypes.hyperbolic:
-                returnTrueAnomaly = Math.Atan(Math.Tanh(eccentricAnomaly / 2) / Math.Sqrt((eccentricity.magnitude - 1) / (eccentricity.magnitude + 1))) * 2;
-                
-                if (eccentricAnomaly < 0)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                }
-                else
-                {
-                    returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                }
 
 
-                break;
-        }
-        return returnTrueAnomaly;
-    }
 
-    private double calculateEccentricAnomaly(Vector2 eccentricity, double semiMajorAxis, double GRAV_CONST, 
-        double timeStep, double meanAnomaly, double eccentricAnomaly, bool clockwise, OrbitTypes orbitType)
-    {
-        double returnEccentricAnomaly = 0.0d;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnEccentricAnomaly = meanAnomaly + (2 * eccentricity.magnitude * Math.Sin(meanAnomaly)) + (1.25 * Vector2.SqrMagnitude(eccentricity) * Math.Sin(2 * meanAnomaly));
-                break;
-            case OrbitTypes.elliptical:
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) < meanAnomaly)
-                {
-                    returnEccentricAnomaly += 1.0f;
-                }
-
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) > meanAnomaly)
-                {
-                    returnEccentricAnomaly -= 0.1f;
-                }
-
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) < meanAnomaly)
-                {
-                    returnEccentricAnomaly += 0.01f;
-                }
-
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) > meanAnomaly)
-                {
-                    returnEccentricAnomaly -= 0.001f;
-                }
-
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) < meanAnomaly)
-                {
-                    returnEccentricAnomaly += 0.0001f;
-                }
-                while (returnEccentricAnomaly - eccentricity.magnitude * Math.Sin(returnEccentricAnomaly) > meanAnomaly)
-                {
-                    returnEccentricAnomaly -= 0.00001f;
-                }
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                if (!clockwise)
-                {
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                    (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                    ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly += 1.0f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                    (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                    ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.1f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                     (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                     ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly += 0.01f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                    (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                    ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.001f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                     (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                     ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly += 0.0001f;
-                    }
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                     (((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly) -
-                     ((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.00001f;
-                    }
-                }
-                else
-                {
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                    (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                    ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly += 1.0f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                        (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                        ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.1f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                        (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                        ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly += 0.01f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                        (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                        ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.001f;
-                    }
-
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                        (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                        ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) > timeStep)
-                    {
-                        returnEccentricAnomaly += 0.0001f;
-                    }
-                    while (Math.Sqrt(Math.Pow(-semiMajorAxis, 3) / GRAV_CONST) *
-                        (((eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly) -
-                        ((eccentricity.magnitude * Math.Sinh(returnEccentricAnomaly)) - returnEccentricAnomaly)) < timeStep)
-                    {
-                        returnEccentricAnomaly -= 0.00001f;
-                    }
-                }
-                break;
-        }
-
-        
-
-        return returnEccentricAnomaly;
-    }
-
-    private double calculateMeanAnomaly(Vector2 eccentricity, double semiMajorAxis, 
-        double anomalyAtEpoch, double timeStep, double timeAtEpoch, bool clockwise, double mu, OrbitTypes orbitType)
-    {
-        double orbitalSpeed;
-        double returnMeanAnomaly = double.PositiveInfinity;
-
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                //Calculate percentage of orbit being crossed
-                orbitalSpeed = Math.Sqrt((mu) / semiMajorAxis);
-                if (clockwise)
-                {
-                    returnMeanAnomaly = anomalyAtEpoch - (orbitalSpeed * timeStep);
-                    returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
-                }
-                else
-                {
-                    returnMeanAnomaly = anomalyAtEpoch + (orbitalSpeed * timeStep);
-                    returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
-                }
-                break;
-            case OrbitTypes.elliptical:
-                //Calculate percentage of orbit being crossed
-                orbitalSpeed = Math.Sqrt((mu) / semiMajorAxis);
-                if (clockwise)
-                {
-                    returnMeanAnomaly = anomalyAtEpoch - (orbitalSpeed * timeStep);
-                    returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
-                }
-                else
-                {
-                    returnMeanAnomaly = anomalyAtEpoch + (orbitalSpeed * timeStep);
-                    returnMeanAnomaly = wrapAngle(returnMeanAnomaly);
-                }
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                returnMeanAnomaly = double.PositiveInfinity;
-                break;
-        }
-        return returnMeanAnomaly;
-    }
-
+    //<summary>
+    //Takes in position and velocity realtive to the body being orbited
+    //</summary>
     private void calculateInitialOrbitalElements(Vector2 position, Vector2 velocity)
     {
-        Debug.Log("Mu: " + gravityElements.Mu);
 
+        gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
         gravityElements.Position = position;
         gravityElements.velocity = velocity;
 
         //Calculate Global Tranformation Vector
-        gravityElements.GlobalTransformationVector = calculateGlobalTranformationVector(gravityElements.MassiveBody);
+        gravityElements.GlobalTransformationVector = OrbitalHelper.calculateGlobalTranformationVector(gravityElements.MassiveBody);
 
         //Calculate eccentricity
-        gravityElements.Eccentricity = calculateEccentricity(position, velocity, gravityElements.Mu);
+        gravityElements.Eccentricity = OrbitalHelper.calculateEccentricity(position, velocity, gravityElements.Mu);
 
         //Determine orbit type
-        gravityElements.OrbitType = determineOrbitType(gravityElements.Eccentricity);
+        gravityElements.OrbitType = OrbitalHelper.determineOrbitType(gravityElements.Eccentricity);
 
         //Calculate Mechanical Energy
-        gravityElements.MechanicalEnergy = calculateMechanicalEnergy(gravityElements.Position, gravityElements.velocity, gravityElements.Mu, gravityElements.OrbitType);
+        gravityElements.MechanicalEnergy = OrbitalHelper.calculateMechanicalEnergy(gravityElements.Position, gravityElements.velocity, gravityElements.Mu, gravityElements.OrbitType);
 
         //Calculate Semi Major Axis
-        gravityElements.SemiMajorAxis = calculateSemiMajorAxis(gravityElements.MechanicalEnergy, gravityElements.Mu, gravityElements.OrbitType);
+        gravityElements.SemiMajorAxis = OrbitalHelper.calculateSemiMajorAxis(gravityElements.MechanicalEnergy, gravityElements.Mu, gravityElements.OrbitType);
 
         //Calculate SemiLatusRectum
-        gravityElements.SemiLatusRectum = calculateSemiLatusRectum(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.OrbitType);
+        gravityElements.SemiLatusRectum = OrbitalHelper.calculateSemiLatusRectum(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.OrbitType);
 
         //Calculate Perigee
-        gravityElements.Perigee = calculatePerigee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
+        gravityElements.Perigee = OrbitalHelper.calculatePerigee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
 
         //Calculate Apogee
-        gravityElements.Apogee = calculateApogee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
+        gravityElements.Apogee = OrbitalHelper.calculateApogee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
 
         //Calculate Center
-        gravityElements.Center = calculateCenter(gravityElements.SemiMajorAxis, gravityElements.Perigee, gravityElements.OrbitType);
+        gravityElements.Center = OrbitalHelper.calculateCenter(gravityElements.SemiMajorAxis, gravityElements.Perigee, gravityElements.OrbitType);
 
         //Calculate GlobalRotationAngle
-        gravityElements.GlobalRotationAngle = calculateGlobalRotationAngle(gravityElements.Eccentricity, gravityElements.OrbitType);
+        gravityElements.GlobalRotationAngle = OrbitalHelper.calculateGlobalRotationAngle(gravityElements.Eccentricity, gravityElements.OrbitType);
 
         //Find orbital directions
-        gravityElements.Clockwise = clockwiseOrbit(gravityElements.Position, gravityElements.velocity);
-        gravityElements.TowardsPerigee = towardsPerigeeOrbit(gravityElements.velocity, gravityElements.Eccentricity, gravityElements.OrbitType);
+        gravityElements.Clockwise = OrbitalHelper.clockwiseOrbit(gravityElements.Position, gravityElements.velocity);
+        gravityElements.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(gravityElements.velocity, gravityElements.Eccentricity, gravityElements.OrbitType);
 
         //Calculate trueAnomaly
-        gravityElements.TrueAnomaly = calculateTrueAnomaly(gravityElements.Eccentricity, gravityElements.Position, gravityElements.TowardsPerigee, gravityElements.Clockwise, gravityElements.OrbitType);
+        gravityElements.TrueAnomaly = OrbitalHelper.calculateTrueAnomaly(gravityElements.Eccentricity, gravityElements.Position, gravityElements.TowardsPerigee, gravityElements.Clockwise, gravityElements.OrbitType);
 
         //Calculate Eccentric Anomaly
-        gravityElements.EccentricAnomaly = calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.TrueAnomaly, gravityElements.TowardsPerigee, gravityElements.OrbitType);
+        gravityElements.EccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.TrueAnomaly, gravityElements.TowardsPerigee, gravityElements.OrbitType);
 
         //Calculate Anomaly at current epoch
-        gravityElements.AnomalyAtEpoch = calculateAnomalyAtCurrentEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.Clockwise, gravityElements.OrbitType);
+        gravityElements.AnomalyAtEpoch = OrbitalHelper.calculateAnomalyAtCurrentEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.Clockwise, gravityElements.OrbitType);
         gravityElements.MeanAnomaly = gravityElements.AnomalyAtEpoch;
 
         //Calculate Angular Momentum
-        gravityElements.AngularMomentum = calculateAngularMomentum(gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, 
+        gravityElements.AngularMomentum = OrbitalHelper.calculateAngularMomentum(gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum,
             gravityElements.Mu, gravityElements.OrbitType);
 
         //Calculate time at epoch
-        gravityElements.TimeAtEpoch = calculateTimeAtEpoch(gravityElements.Eccentricity, gravityElements.AngularMomentum, gravityElements.AnomalyAtEpoch, gravityElements.Mu, 
+        gravityElements.TimeAtEpoch = OrbitalHelper.calculateTimeAtEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.SemiMajorAxis, gravityElements.Mu,
             gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
-        
-    }
-
-    private Vector2 calculateGlobalTranformationVector(GameObject celestialBody)
-    {
-        return celestialBody.transform.position;
-    }
-
-    private double convertToWorldAngle(double localAngle, double globalRotationAngle, bool towardsPerigee)
-    {
-        if (towardsPerigee)
-        {
-            if (globalRotationAngle < 0)
-            {
-                localAngle = Math.Abs(localAngle) - Math.Abs(globalRotationAngle);
-            }
-            else
-            {
-                localAngle = Math.Abs(globalRotationAngle) - Math.Abs(localAngle);
-            }
-        }
-        else
-        {
-            if(globalRotationAngle < 0)
-            {
-                localAngle = Math.Abs((2 * Math.PI) - Math.Abs(globalRotationAngle) - Math.Abs(localAngle));
-            }
-            else
-            {
-                localAngle = -Math.Abs((2 * Math.PI) - globalRotationAngle - localAngle); 
-            }
-        }
-        localAngle = wrapAngle(localAngle);
-        return localAngle;
-    }
-
-    private double calculateTimeAtEpoch(Vector2 eccentricity, double angularMomentum, double anomalyAtEpoch, double mu, bool clockwise, bool towardsPerigee, OrbitTypes orbitType)
-    {
-        double returnTime = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                break;
-            case OrbitTypes.elliptical:
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                returnTime = (Math.Pow(angularMomentum, 3) / Math.Pow(mu, 2)) *
-                (anomalyAtEpoch / Math.Pow(Vector2.SqrMagnitude(eccentricity) - 1, 1.5));
-                break;
-        }
-        if (clockwise)
-        {
-            if (towardsPerigee)
-            {
-                returnTime = Math.Abs(returnTime);  
-            }
-            else
-            {
-                returnTime = -Math.Abs(returnTime);
-            }
-        }
-        else
-        {
-            if (towardsPerigee)
-            {
-                returnTime = -Math.Abs(returnTime);
-            }
-            else
-            {
-                returnTime = Math.Abs(returnTime);
-            }
-        }
-
-        return returnTime;
-    }
-
-    private double calculateAngularMomentum(Vector2 eccentricity, Vector2 perigee, double semiMajorAxis, double semiLatusRectum, double mu, OrbitTypes orbitType)
-    {
-        return calculateSpeed(perigee, semiMajorAxis, mu, orbitType) * calculateAltitude(eccentricity, semiMajorAxis, semiLatusRectum, 0, orbitType);
-    }
-
-    private double calculateAltitude(Vector2 eccentricity, double semiMajorAxis, double semiLatusRectum, double trueAnomaly, OrbitTypes orbitType)
-    {
-        double returnAltitude = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.elliptical:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.parabolic:
-                returnAltitude = (semiMajorAxis * (1 - (eccentricity.magnitude * eccentricity.magnitude))) /
-                    (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-            case OrbitTypes.hyperbolic:
-                returnAltitude = semiLatusRectum / (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                break;
-        }
-        return returnAltitude;
-    }
-
-    private double calculateSpeed(Vector2 position, double semiMajorAxis, double mu, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return Math.Sqrt((mu) * ((2 / position.magnitude) - (1 / semiMajorAxis)));
-            case OrbitTypes.elliptical:
-                return Math.Sqrt((mu) * ((2 / position.magnitude) - (1 / semiMajorAxis)));
-            case OrbitTypes.parabolic:
-                return Math.Sqrt((mu) * ((2 / position.magnitude) - (1 / semiMajorAxis)));
-            case OrbitTypes.hyperbolic:
-                return Math.Sqrt((mu) * ((2 / position.magnitude) - (1 / semiMajorAxis)));
-            //double energy = 0.5 * Math.Pow(Math.Pow(((-(mu) / semiMajorAxis) * (1 + eccentricity.magnitude)) / (eccentricity.magnitude - 1), 0.5), 2) - mu / (semiMajorAxis * (1 - eccentricity.magnitude));
-            //return Math.Sqrt((energy + (mu / position.magnitude)) * 2);
-            default:
-                return Math.Sqrt((mu) * ((2 / position.magnitude) - (1 / semiMajorAxis)));
-        }
-    }
-
-    private double calculateAnomalyAtCurrentEpoch(Vector2 eccentricity, double eccentricAnomaly, bool clockwise, OrbitTypes orbitType)
-    {
-        double returnAnomaly = 0;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnAnomaly = eccentricAnomaly - eccentricity.magnitude * Math.Sin(eccentricAnomaly);
-                break;
-            case OrbitTypes.elliptical:
-                returnAnomaly = eccentricAnomaly - eccentricity.magnitude * Math.Sin(eccentricAnomaly);
-                break;
-            case OrbitTypes.parabolic:
-                returnAnomaly = eccentricAnomaly + (Math.Pow(eccentricAnomaly, 3) / 3);
-                break;
-            case OrbitTypes.hyperbolic:
-                returnAnomaly = (eccentricity.magnitude * Math.Sinh(eccentricAnomaly)) - eccentricAnomaly;
-                break;
-        }
-        //flip sign if clockwise
-        if (clockwise)
-        {
-            returnAnomaly = -returnAnomaly;
-        }
-
-        return returnAnomaly;
-    }
-
-    private double calculateEccentricAnomaly(Vector2 eccentricity, double trueAnomaly, bool towardsPerigee, OrbitTypes orbitType)
-    {
-        double returnEccentricAnomaly = 0;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnEccentricAnomaly = Math.Acos((eccentricity.magnitude + Math.Cos(trueAnomaly)) /
-                (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly))));
-                if (towardsPerigee)
-                {
-                    returnEccentricAnomaly = -returnEccentricAnomaly;
-                }
-                break;
-            case OrbitTypes.elliptical:
-                returnEccentricAnomaly = Math.Acos((eccentricity.magnitude + Math.Cos(trueAnomaly)) /
-                        (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly))));
-                if (towardsPerigee)
-                {
-                    returnEccentricAnomaly = -returnEccentricAnomaly;
-                }
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                double x = (eccentricity.magnitude + Math.Cos(trueAnomaly)) / (1 + (eccentricity.magnitude * Math.Cos(trueAnomaly)));
-                returnEccentricAnomaly = Math.Log(x + Math.Sqrt((x * x) - 1));
-                if (trueAnomaly < 0)
-                {
-                    returnEccentricAnomaly = -Math.Abs(returnEccentricAnomaly);
-                }
-                else
-                {
-                    returnEccentricAnomaly = Math.Abs(returnEccentricAnomaly);
-                }
-                break;
-        }
-
-
-
-        return returnEccentricAnomaly;
-    }
-
-    private double calculateTrueAnomaly(Vector2 eccentricity, Vector2 position, bool towardsPerigee, bool clockwise, OrbitTypes orbitType)
-    {
-        double returnTrueAnomaly = double.PositiveInfinity;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnTrueAnomaly = Vector2.Angle(position, Vector2.right);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                break;
-            case OrbitTypes.elliptical:
-                returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                if (towardsPerigee)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                }
-                else
-                {
-                    returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                }
-
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                returnTrueAnomaly = Vector2.Angle(eccentricity, position);
-                returnTrueAnomaly = convertToRadians(returnTrueAnomaly);
-                if (clockwise)
-                {
-                    if (towardsPerigee)
-                    {
-                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                    }
-                    else
-                    {
-                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                    }
-                }
-                else
-                {
-                    if (towardsPerigee)
-                    {
-                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
-                    }
-                    else
-                    {
-                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                    }
-                }
-                break;
-        }
-
-        return returnTrueAnomaly;
-    }
-
-    private bool towardsPerigeeOrbit(Vector2 velocity, Vector2 eccentricity, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return (convertToRadians(Vector2.Angle(Vector2.right, velocity)) < Math.PI / 2);
-            case OrbitTypes.elliptical:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
-            case OrbitTypes.parabolic:
-                return true;
-            case OrbitTypes.hyperbolic:
-                return (convertToRadians(Vector2.Angle(eccentricity, velocity)) < Math.PI / 2);
-        }
-        return true;
 
     }
 
-    private bool clockwiseOrbit(Vector2 position, Vector2 velocity)
-    {
-        Vector3 crossProduct;
-        crossProduct = Vector3.Cross(convertToVec3(position), convertToVec3(velocity));
-        if (crossProduct.z > 0)
-        {
-            return false;
-        }
-        return true;
-    }
 
-    private Vector2 calculateBottomAsymptote(Vector2 eccentricity, double globalRotationAngle, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.elliptical:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.parabolic:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.hyperbolic:
-                double asymptoteAngle;
-                asymptoteAngle = Math.Asin(1 / eccentricity.magnitude) * 2;
-                asymptoteAngle = Math.PI / 2 - (asymptoteAngle / 2);
-                asymptoteAngle = asymptoteAngle + Math.PI + globalRotationAngle;
-                Vector2 returnVector = new Vector2((float)Math.Cos(asymptoteAngle), (float)Math.Sin(asymptoteAngle));
-                return returnVector;
-            default:
-                return Vector2.right * float.PositiveInfinity;
-        }
-    }
-
-    private Vector2 calculateTopAsymptote(Vector2 eccentricity, double globalRotationAngle, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.elliptical:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.parabolic:
-                return Vector2.right * float.PositiveInfinity;
-            case OrbitTypes.hyperbolic:
-                double asymptoteAngle;
-                asymptoteAngle = Math.Asin(1 / eccentricity.magnitude) * 2;
-                asymptoteAngle = Math.PI / 2 - (asymptoteAngle / 2);
-                asymptoteAngle = asymptoteAngle + Math.PI + globalRotationAngle;
-                asymptoteAngle = -asymptoteAngle;
-                Vector2 returnVector = new Vector2((float)Math.Cos(asymptoteAngle), (float)Math.Sin(asymptoteAngle));
-                return returnVector;
-            default:
-                return Vector2.right * float.PositiveInfinity;
-
-        }
-    }
-
-    private double calculateGlobalRotationAngle(Vector2 eccentricity, OrbitTypes orbitType)
-    {
-        double returnGlobalRotationAngle = 0;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                returnGlobalRotationAngle = 0;
-                break;
-            case OrbitTypes.elliptical:
-                returnGlobalRotationAngle = Math.Atan2(eccentricity.y, eccentricity.x);
-                break;
-            case OrbitTypes.parabolic:
-                returnGlobalRotationAngle = Math.Atan2(eccentricity.y, eccentricity.x);
-                break;
-            case OrbitTypes.hyperbolic:
-                returnGlobalRotationAngle = Math.Atan2(eccentricity.y, eccentricity.x);
-                break;
-        }
-        //conver to positive angle
-        if (returnGlobalRotationAngle < 0)
-        {
-            returnGlobalRotationAngle = (Math.PI - Math.Abs(returnGlobalRotationAngle)) + Math.PI;
-        }
-        return returnGlobalRotationAngle;
-    }
-
-    private Vector2 calculateCenter(double semiMajorAxis, Vector2 perigee, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return -perigee.normalized * (float)semiMajorAxis + perigee;
-            case OrbitTypes.elliptical:
-                return -perigee.normalized * (float)semiMajorAxis + perigee;
-            case OrbitTypes.parabolic:
-                return -perigee.normalized * (float)semiMajorAxis + perigee;
-            case OrbitTypes.hyperbolic:
-                return -perigee.normalized * (float)semiMajorAxis + perigee;
-        }
-
-        return Vector2.right * float.PositiveInfinity;
-    }
-
-    private Vector2 calculatePerigee(double semiMajorAxis, Vector2 eccentricity, OrbitTypes orbitType)
-    {
-        double altitudeOfPerigee = 0;
-        Vector2 returnPerigee = Vector2.right;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                altitudeOfPerigee = semiMajorAxis;
-                returnPerigee = Vector2.right;
-                returnPerigee = returnPerigee * (float)altitudeOfPerigee;
-                break;
-            case OrbitTypes.elliptical:
-                altitudeOfPerigee = semiMajorAxis * (1 - eccentricity.magnitude);
-                returnPerigee = eccentricity.normalized;
-                returnPerigee = returnPerigee * (float)altitudeOfPerigee;
-                break;
-            case OrbitTypes.parabolic:
-
-                break;
-            case OrbitTypes.hyperbolic:
-                altitudeOfPerigee = -semiMajorAxis * (eccentricity.magnitude - 1);
-                returnPerigee = eccentricity.normalized * (float)altitudeOfPerigee;
-                break;
-        }
-        return returnPerigee;
-    }
-
-    private Vector2 calculateApogee(double semiMajorAxis, Vector2 eccentricity, OrbitTypes orbitType)
-    {
-        double altitudeOfApogee = 0;
-        Vector2 returnApogee = Vector2.right;
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                altitudeOfApogee = semiMajorAxis;
-                returnApogee = Vector2.right;
-                returnApogee = -returnApogee * (float)altitudeOfApogee;
-                break;
-            case OrbitTypes.elliptical:
-                altitudeOfApogee = semiMajorAxis * (1 + eccentricity.magnitude);
-                returnApogee = -eccentricity.normalized;
-                returnApogee = returnApogee * (float)altitudeOfApogee;
-                break;
-            case OrbitTypes.parabolic:
-                break;
-            case OrbitTypes.hyperbolic:
-                altitudeOfApogee = double.PositiveInfinity;
-                returnApogee = -Vector2.right * float.PositiveInfinity;
-                break;
-        }
-        return returnApogee;
-    }
-
-    private double calculateSemiLatusRectum(double semiMajorAxis, Vector2 eccentricity, Vector2 perigee, OrbitTypes orbitType)
-    {
-        if (orbitType != OrbitTypes.parabolic)
-        {
-            return semiMajorAxis * (1 - Vector2.SqrMagnitude(eccentricity));
-        }
-        else
-        {
-            return 2 * perigee.magnitude;
-        }
-    }
-
-    private double calculateSemiMajorAxis(double mechanicalEnergy, double mu, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return -((mu) / (2 * mechanicalEnergy));
-            case OrbitTypes.elliptical:
-                return -((mu) / (2 * mechanicalEnergy));
-            case OrbitTypes.parabolic:
-                return double.PositiveInfinity;
-            case OrbitTypes.hyperbolic:
-                return -((mu) / (2 * mechanicalEnergy));
-        }
-        return double.NegativeInfinity;
-    }
-
-    private double calculateMechanicalEnergy(Vector2 position, Vector2 velocity, double mu, OrbitTypes orbitType)
-    {
-        switch (orbitType)
-        {
-            case OrbitTypes.circular:
-                return (Vector2.SqrMagnitude(velocity) / 2) - ((mu) / position.magnitude);
-            case OrbitTypes.elliptical:
-                return (Vector2.SqrMagnitude(velocity) / 2) - ((mu) / position.magnitude);
-            case OrbitTypes.parabolic:
-                return 0;
-            case OrbitTypes.hyperbolic:
-                return (Vector2.SqrMagnitude(velocity) / 2) - ((mu) / position.magnitude);
-        }
-        return double.PositiveInfinity;
-    }
-
-    private OrbitTypes determineOrbitType(Vector2 eccentricity)
-    {
-        if (eccentricity.magnitude == 0)
-        {
-            return OrbitTypes.circular;
-        }
-        else if (eccentricity.magnitude < 1
-          && eccentricity.magnitude > 0)
-        {
-            return OrbitTypes.elliptical;
-        }
-        else if (eccentricity.magnitude == 1.0f)
-        {
-            return OrbitTypes.parabolic;
-        }
-        else if (eccentricity.magnitude > 1)
-        {
-            return OrbitTypes.hyperbolic;
-        }
-
-        //Shouled never reach this
-        return OrbitTypes.error;
-    }
-
-    private Vector2 calculateEccentricity(Vector2 inPosition, Vector2 inVelocity, double inMu)
-    {
-        return ((inPosition * (float)(Vector2.SqrMagnitude(inVelocity) - ((inMu) / inPosition.magnitude))) - ((float)(Vector2.Dot(inPosition, inVelocity)) * inVelocity)) *
-            (float)(1 / (inMu));
-    }
 
     //HELPER FUNCTIONS
-    private double wrapAngle(double angleToWrap)
-    {
-        if(angleToWrap > Math.PI)
-        {
-            angleToWrap -= Math.PI;
-            angleToWrap = -Math.PI + angleToWrap;
-        }
 
-        if(angleToWrap < -Math.PI)
-        {
-            angleToWrap += Math.PI;
-            angleToWrap = Math.Abs(angleToWrap);
-            angleToWrap = Math.PI - angleToWrap;
-        }
-
-        return angleToWrap;
-    }
-
-    private double convertToRadians(double degrees)
-    {
-        return (degrees * Math.PI) / 180;
-    }
-
-    private Vector3 convertToVec3(Vector2 inVec)
-    {
-        return new Vector3(inVec.x, inVec.y, 0.0f);
-    }
 
     public void OnDrawGizmos()
     {
-        if (debugMode)
+        if (debugMode && gravityElements != null)
         {
             //Draw perigee
             Gizmos.color = Color.yellow;
@@ -1179,5 +316,34 @@ public class GravityBehavior : MonoBehaviour {
     {
         double radius = (semiMajorAxis * (1 - Vector2.SqrMagnitude(eccentricity))) / (1 - eccentricity.magnitude * (Math.Cos(angle - globalRotationAngle + Math.PI)));
         return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * (float)radius;
+    }
+
+    public Vector2 calculatePositionAtFutureTime(double timeStep)
+    {
+        //Adjust tranformation vector
+        Vector2 globalTransformationVector = gravityElements.MassiveBody.transform.position;
+
+        //Calculate time at epoch
+        double timeAtEpoch = OrbitalHelper.advanceTime(gravityElements.TimeAtEpoch, timeStep, gravityElements.Clockwise, gravityElements.OrbitType);
+
+        //Calculate next meanAnomaly
+        double meanAnomaly = OrbitalHelper.calculateMeanAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.AnomalyAtEpoch,
+            timeStep, timeAtEpoch, gravityElements.Clockwise, gravityElements.Mu, gravityElements.OrbitType);
+
+        //Calculate Eccentric Anomaly
+        double eccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, GlobalElements.GRAV_CONST, timeStep, timeAtEpoch,
+            meanAnomaly, gravityElements.EccentricAnomaly, gravityElements.Mu, gravityElements.Clockwise, gravityElements.OrbitType);
+
+        //CalculateTrueAnomaly
+        double trueAnomaly = OrbitalHelper.calculateTrueAnomaly(gravityElements.Eccentricity, eccentricAnomaly, meanAnomaly, gravityElements.OrbitType);
+
+        //Calculate Altitude
+        double altitude = OrbitalHelper.calculateAltitude(gravityElements.Eccentricity, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum, trueAnomaly, gravityElements.OrbitType);
+
+        //Calculate positionVector
+        Vector2 position = OrbitalHelper.calculatePosition(gravityElements.Perigee, trueAnomaly, gravityElements.GlobalRotationAngle, altitude, gravityElements.OrbitType);
+
+        //Im returning the position here, you know, just in case you couldnt figure it out on your own
+        return position;
     }
 }

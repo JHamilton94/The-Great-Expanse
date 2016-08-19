@@ -33,7 +33,6 @@ public class NodeManager : MonoBehaviour {
 
     //thrust
     private Vector2 thrustVector;
-
     private double lastTrueAnomaly;
 
 	// Use this for initialization
@@ -97,8 +96,6 @@ public class NodeManager : MonoBehaviour {
 
         //do something
         lastTrueAnomaly = shipElements.TrueAnomaly;
-
-        Debug.Log("Mouse true anomaly: " + mouseTrueAnomaly);
 	}
 
 	private void executeManeuver() {
