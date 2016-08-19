@@ -46,9 +46,9 @@ public class ShipGravityBehavior : MonoBehaviour
         transform.position = gravityElements.Position + gravityElements.GlobalTransformationVector;
     }
 
-    public void applyThrust(Vector2 thrust)
+    public void applyThrust(GravityElementsClass newOrbit)
     {
-        calculateInitialOrbitalElements(gravityElements.Position, gravityElements.velocity + thrust);
+        gravityElements.copyGravityElementsClass(newOrbit);
         shipPatchedConics.updateEncounters();
     }
 

@@ -4,6 +4,48 @@ using System.Collections;
 public class GravityElements : MonoBehaviour
 {
 
+    public void copyGravityElementsClass(GravityElementsClass gravElements)
+    {
+        this.velocity = gravElements.velocity;
+        this.massiveBody = gravElements.massiveBody;
+        this.gravitationalType = gravElements.gravitationalType;
+
+        this.altitude = gravElements.Altitude;
+        this.speed = gravElements.Speed;
+        this.velocityAngle = gravElements.VelocityAngle;
+
+        this.orbitType = gravElements.OrbitType;
+        this.mu = gravElements.Mu;
+
+        this.position = gravElements.Position;
+        this.apogee = gravElements.Apogee;
+        this.perigee = gravElements.Perigee;
+        this.center = gravElements.Center;
+        this.altitudeOfPerigee = gravElements.AltitudeOfPerigee;
+        this.angularMomentum = gravElements.AngularMomentum;
+
+        this.semiMajorAxis = gravElements.SemiMajorAxis;
+        this.semiLatusRectum = gravElements.SemiLatusRectum;
+
+        this.eccentricity = gravElements.Eccentricity;
+        this.eccentricityMagnitude = gravElements.EccentricityMagnitude;
+        this.eccentricAnomaly = gravElements.EccentricAnomaly;
+        this.trueAnomaly = gravElements.TrueAnomaly;
+        this.meanAnomaly = gravElements.MeanAnomaly;
+        this.anomalyAtEpoch = gravElements.AnomalyAtEpoch;
+        this.mechanicalEnergy = gravElements.MechanicalEnergy;
+
+        this.time = gravElements.Time;
+        this.timeStep = gravElements.TimeStep;
+        this.timeAtEpoch = gravElements.TimeAtEpoch;
+
+        this.clockwise = gravElements.Clockwise;
+        this.towardsPerigee = gravElements.TowardsPerigee;
+
+        this.globalTransformationVector = gravElements.GlobalTransformationVector;
+        this.globalRotationAngle = gravElements.GlobalRotationAngle;
+    }
+
     public GravityElements()
     {
 

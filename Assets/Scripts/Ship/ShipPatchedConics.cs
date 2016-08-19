@@ -330,14 +330,14 @@ public class ShipPatchedConics : MonoBehaviour
         }
     }
 
-    public void updatePotentialEncounters(Vector2 maneuverPosition, Vector2 maneuverVelocity)
+    public void updatePotentialEncounters(GravityElementsClass newManeuver)
     {
         if (encounters.maneuverEncounters == null)
         {
             return;
         }
 
-        GravityElementsClass currentEncounterGravityElements = calculateInitialOrbitalElements(maneuverPosition, maneuverVelocity, shipElements.massiveBody);
+        GravityElementsClass currentEncounterGravityElements = newManeuver;
         
         encounters.maneuverEncounters.Clear();
         

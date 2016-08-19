@@ -36,7 +36,7 @@ public class InputController : MonoBehaviour
         //Clicking a position in an orbit
         if (Input.GetButton("Fire1"))
         {
-            nodeManager.createNode();
+            nodeManager.createManeuver();
         }
 
         //Time manipulation
@@ -72,12 +72,6 @@ public class InputController : MonoBehaviour
         }
     }
 
-    public void OnDrawGizmos()
-    {
-        //Draw thrust vector
-        Gizmos.color = Color.red;
-    }
-
 
 
     //Helper funcs
@@ -86,15 +80,16 @@ public class InputController : MonoBehaviour
         return new Vector3(inVec.x, inVec.y, 0.0f);
     }
 
+
+    //called when dragging or undragging buttons
     public void dragButton()
     {
-        nodeManager.setDragging(true);
+        nodeManager.startDragging();
     }
 
     public void stopDragButton()
     {
-        nodeManager.setDragging(false);
-        nodeManager.updatePatchedConics();
+        nodeManager.stoppedDragging();
     }
 
 }

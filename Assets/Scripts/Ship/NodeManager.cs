@@ -51,9 +51,11 @@ public class NodeManager : MonoBehaviour {
     }
 
 	void FixedUpdate () {
+
         //Have we arrived at a node?
         if (node != null)
         {
+
             //Is the ship moving clockwise?
             if (shipElements.Clockwise) 
             {
@@ -74,6 +76,7 @@ public class NodeManager : MonoBehaviour {
             }
         }
 
+
         //position maneuver node
         if (node != null)
         {
@@ -90,17 +93,17 @@ public class NodeManager : MonoBehaviour {
         if (dragging)
         {
             thrustVector = MiscHelperFuncs.convertToVec2(Camera.main.ScreenToWorldPoint(Input.mousePosition)) - (node.getNodePosition() + shipElements.GlobalTransformationVector);
-            node.setThrustVector(thrustVector);
         }
 
         //do something
         lastTrueAnomaly = shipElements.TrueAnomaly;
+
+        Debug.Log("Mouse true anomaly: " + mouseTrueAnomaly);
 	}
 
 	private void executeManeuver() {
 		Debug.LogWarning("need to implement edge case");
-        shipElements.Position = node.getNodePosition();
-        ship.applyThrust(node.getThrustVector());
+        ship.applyThrust(node.getManeuver());
 		thrustVector *= 0;
         patchedConics.clearPotentialEncounters();
 		node = null;
@@ -166,9 +169,15 @@ public class NodeManager : MonoBehaviour {
         lineDrawer.DrawLine(node.getNodePosition() + shipElements.GlobalTransformationVector, node.getNodePosition() + shipElements.GlobalTransformationVector + thrustVector, Color.red);
     }
 
-    public void setDragging(bool drag)
+    public void startDragging()
     {
-        dragging = drag;
+        dragging = true;
+    }
+
+    public void stoppedDragging()
+    {
+        createNode();
+        dragging = false;
     }
 
     public void hover(Vector2 mouseLocation)
@@ -203,18 +212,15 @@ public class NodeManager : MonoBehaviour {
             Debug.Log("Thrust: " + "heehee");*/
         }
     }
-
-    public void createNode()
+    
+    public void createManeuver()
     {
         if (hovering)
         {
             //create a new node
             if (node == null)
             {
-                Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),
-                (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
-                (float)orbitalAltitude;
-                node = new Node(mouseTrueAnomaly, new Vector2(0,0), nodePosition);
+                createNode();
             }
             //move an existing node
             else if (node != null &&
@@ -222,11 +228,9 @@ public class NodeManager : MonoBehaviour {
                 && Vector2.Distance(thrustVectorHandle.transform.position, MiscHelperFuncs.convertToVec2(Camera.main.ScreenToWorldPoint(Input.mousePosition))) >
                 thrustVectorHandle.GetComponent<CircleCollider2D>().radius * thrustVectorHandle.GetComponent<CircleCollider2D>().transform.localScale.x)
             {
-                Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),
-                (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
-                (float)orbitalAltitude;
-                node = new Node(mouseTrueAnomaly, Vector2.right * 20, nodePosition);
-			}
+
+                createNode();
+            }
         }
         else
         {
@@ -239,19 +243,6 @@ public class NodeManager : MonoBehaviour {
         return node;
     }
 
-    public void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        if (hovering)
-        {
-            Gizmos.DrawSphere((mouseLocation.normalized * (float)orbitalAltitude) + shipElements.GlobalTransformationVector, 0.1f);
-        }
-        if (node != null)
-        {
-            //Gizmos.DrawSphere(node.getNodePosition() + shipElements.GlobalTransformationVector, 0.1f);
-        }
-    }
-
     public void updatePatchedConics()
     {
         //update patched conics
@@ -259,6 +250,91 @@ public class NodeManager : MonoBehaviour {
         double velocityAngle = OrbitalHelper.calculateVelocityAngle(node.getNodePosition(), shipElements.Eccentricity, shipElements.SemiMajorAxis, node.getTrueAnomaly(), shipElements.GlobalRotationAngle, shipElements.Clockwise, predictedSideOfOrbit, shipElements.OrbitType);
         double speed = OrbitalHelper.calculateSpeed(node.getNodePosition(), shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
         
-        patchedConics.updatePotentialEncounters(node.getNodePosition(), node.getThrustVector() + OrbitalHelper.assembleVelocityVector(velocityAngle, speed));
+        patchedConics.updatePotentialEncounters(node.getManeuver());
+    }
+
+    private void createNode()
+    {
+        Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),
+                (float)Math.Sin(mouseTrueAnomaly + shipElements.GlobalRotationAngle)).normalized *
+                (float)orbitalAltitude;
+
+        bool nodeTowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(mouseTrueAnomaly, shipElements.Clockwise);
+        double nodeSpeed = OrbitalHelper.calculateSpeed(nodePosition, shipElements.SemiMajorAxis, shipElements.Mu, shipElements.OrbitType);
+        double nodeVelocityAngle = OrbitalHelper.calculateVelocityAngle(nodePosition, shipElements.Eccentricity, shipElements.SemiMajorAxis, shipElements.TrueAnomaly, shipElements.GlobalRotationAngle, shipElements.Clockwise, nodeTowardsPerigee, shipElements.OrbitType);
+
+        Vector2 nodeVelocity = OrbitalHelper.assembleVelocityVector(nodeVelocityAngle, nodeSpeed);
+
+        GravityElementsClass newOrbit = calculateInitialOrbitalElements(nodePosition, nodeVelocity + thrustVector, shipElements.massiveBody);
+
+        node = new Node(newOrbit, mouseTrueAnomaly, nodePosition);
+
+        patchedConics.updatePotentialEncounters(node.getManeuver());
+    }
+
+    //takes in everything relative to the body being orbited
+    private GravityElementsClass calculateInitialOrbitalElements(Vector2 position, Vector2 velocity, GameObject massiveBody)
+    {
+        GravityElementsClass gravityElements = new GravityElementsClass();
+
+        gravityElements.massiveBody = massiveBody;
+
+        gravityElements.Mu = GlobalElements.GRAV_CONST * gravityElements.MassiveBody.GetComponent<MassiveBodyElements>().mass;
+        gravityElements.Position = position;
+        gravityElements.velocity = velocity;
+
+        //Calculate Global Tranformation Vector
+        gravityElements.GlobalTransformationVector = massiveBody.transform.position;
+
+        //Calculate eccentricity
+        gravityElements.Eccentricity = OrbitalHelper.calculateEccentricity(position, velocity, gravityElements.Mu);
+
+        //Determine orbit type
+        gravityElements.OrbitType = OrbitalHelper.determineOrbitType(gravityElements.Eccentricity);
+
+        //Calculate Mechanical Energy
+        gravityElements.MechanicalEnergy = OrbitalHelper.calculateMechanicalEnergy(gravityElements.Position, gravityElements.velocity, gravityElements.Mu, gravityElements.OrbitType);
+
+        //Calculate Semi Major Axis
+        gravityElements.SemiMajorAxis = OrbitalHelper.calculateSemiMajorAxis(gravityElements.MechanicalEnergy, gravityElements.Mu, gravityElements.OrbitType);
+
+        //Calculate SemiLatusRectum
+        gravityElements.SemiLatusRectum = OrbitalHelper.calculateSemiLatusRectum(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.OrbitType);
+
+        //Calculate Perigee
+        gravityElements.Perigee = OrbitalHelper.calculatePerigee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
+
+        //Calculate Apogee
+        gravityElements.Apogee = OrbitalHelper.calculateApogee(gravityElements.SemiMajorAxis, gravityElements.Eccentricity, gravityElements.OrbitType);
+
+        //Calculate Center
+        gravityElements.Center = OrbitalHelper.calculateCenter(gravityElements.SemiMajorAxis, gravityElements.Perigee, gravityElements.OrbitType);
+
+        //Calculate GlobalRotationAngle
+        gravityElements.GlobalRotationAngle = OrbitalHelper.calculateGlobalRotationAngle(gravityElements.Eccentricity, gravityElements.OrbitType);
+
+        //Find orbital directions
+        gravityElements.Clockwise = OrbitalHelper.clockwiseOrbit(gravityElements.Position, gravityElements.velocity);
+        gravityElements.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(gravityElements.velocity, gravityElements.Eccentricity, gravityElements.OrbitType);
+
+        //Calculate trueAnomaly
+        gravityElements.TrueAnomaly = OrbitalHelper.calculateTrueAnomaly(gravityElements.Eccentricity, gravityElements.Position, gravityElements.TowardsPerigee, gravityElements.Clockwise, gravityElements.OrbitType);
+
+        //Calculate Eccentric Anomaly
+        gravityElements.EccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(gravityElements.Eccentricity, gravityElements.TrueAnomaly, gravityElements.TowardsPerigee, gravityElements.OrbitType);
+
+        //Calculate Anomaly at current epoch
+        gravityElements.AnomalyAtEpoch = OrbitalHelper.calculateAnomalyAtCurrentEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.Clockwise, gravityElements.OrbitType);
+        gravityElements.MeanAnomaly = gravityElements.AnomalyAtEpoch;
+
+        //Calculate Angular Momentum
+        gravityElements.AngularMomentum = OrbitalHelper.calculateAngularMomentum(gravityElements.Eccentricity, gravityElements.Perigee, gravityElements.SemiMajorAxis, gravityElements.SemiLatusRectum,
+            gravityElements.Mu, gravityElements.OrbitType);
+
+        //Calculate time at epoch
+        gravityElements.TimeAtEpoch = OrbitalHelper.calculateTimeAtEpoch(gravityElements.Eccentricity, gravityElements.EccentricAnomaly, gravityElements.SemiMajorAxis, gravityElements.Mu,
+            gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
+
+        return gravityElements;
     }
 }

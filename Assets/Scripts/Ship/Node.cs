@@ -3,15 +3,15 @@ using System.Collections;
 
 public class Node {
 
+    private GravityElementsClass maneuver;
     private double trueAnomaly;
-    private Vector2 thrustVector;
     private Vector2 nodePosition;
 
-    public Node(double trueAnomaly, Vector2 thrustVector, Vector2 nodePosition)
+    public Node(GravityElementsClass maneuver, double trueAnomaly, Vector2 nodePosition)
     {
-        this.trueAnomaly = trueAnomaly;
-        this.thrustVector = thrustVector;
+        this.maneuver = maneuver;
         this.nodePosition = nodePosition;
+        this.trueAnomaly = trueAnomaly;
     }
     
     public Vector2 getNodePosition()
@@ -24,13 +24,8 @@ public class Node {
         return trueAnomaly;
     }
 
-    public Vector2 getThrustVector()
+    public GravityElementsClass getManeuver()
     {
-        return thrustVector;
-    }
-
-    public void setThrustVector(Vector2 thrustVector)
-    {
-        this.thrustVector = thrustVector;
+        return maneuver;
     }
 }
