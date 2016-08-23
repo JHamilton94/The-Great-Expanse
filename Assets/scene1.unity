@@ -3180,7 +3180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 516d02cf52b61b840a03a30cd01008ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  velocity: {x: -2, y: 0}
+  velocity: {x: 1.9, y: 0}
   massiveBody: {fileID: 635663950}
   gravitationalType: 0
 --- !u!4 &1436866969

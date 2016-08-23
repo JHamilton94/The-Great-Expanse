@@ -236,6 +236,7 @@ public class NodeManager : MonoBehaviour {
         patchedConics.updatePotentialEncounters(node.getManeuver());
     }
 
+
     private void createNode()
     {
         Vector2 nodePosition = new Vector2((float)Math.Cos(mouseTrueAnomaly + shipElements.GlobalRotationAngle),

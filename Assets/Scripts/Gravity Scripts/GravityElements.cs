@@ -627,6 +627,52 @@ public class GravityElements : MonoBehaviour
 
         return returnGravityElements;
     }
+
+    public void advanceToFutureState(double time)
+    {
+        //update timestep
+        this.TimeStep = time;
+
+        //Adjust tranformation vector
+        this.GlobalTransformationVector = this.MassiveBody.transform.position;
+
+        //Calculate next meanAnomaly
+        this.MeanAnomaly = OrbitalHelper.calculateMeanAnomaly(this.Eccentricity, this.SemiMajorAxis, this.AnomalyAtEpoch,
+            this.TimeStep, this.TimeAtEpoch, this.Clockwise, this.Mu, this.OrbitType);
+
+        //Calculate Eccentric Anomaly
+        this.EccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(this.Eccentricity, this.SemiMajorAxis, GlobalElements.GRAV_CONST, this.TimeStep, this.TimeAtEpoch,
+            this.MeanAnomaly, this.EccentricAnomaly, this.Mu, this.Clockwise, this.OrbitType);
+
+        //CalculateTrueAnomaly
+        this.TrueAnomaly = OrbitalHelper.calculateTrueAnomaly(this.Eccentricity, this.EccentricAnomaly, this.MeanAnomaly, this.OrbitType);
+
+        //Calculate Altitude
+        this.Altitude = OrbitalHelper.calculateAltitude(this.Eccentricity, this.SemiMajorAxis, this.SemiLatusRectum, this.TrueAnomaly, this.OrbitType);
+
+        //Calculate positionVector
+        this.Position = OrbitalHelper.calculatePosition(this.Perigee, this.TrueAnomaly, this.GlobalRotationAngle, this.Altitude, this.OrbitType);
+
+        //Are we going towards the perigee?
+        this.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(this.MeanAnomaly, this.Clockwise);
+
+        //Calculate velocity angle
+        this.VelocityAngle = OrbitalHelper.calculateVelocityAngle(this.Position, this.Eccentricity, this.SemiMajorAxis,
+            this.TrueAnomaly, this.GlobalRotationAngle, this.Clockwise, this.TowardsPerigee, this.OrbitType);
+
+        //Calculate Speed
+        this.Speed = OrbitalHelper.calculateSpeed(this.Position, this.SemiMajorAxis, this.Mu, this.OrbitType);
+
+        //Calculate Velocity
+        this.velocity = OrbitalHelper.assembleVelocityVector(this.VelocityAngle, this.Speed);
+
+        //advance epoch
+        this.AnomalyAtEpoch = this.MeanAnomaly;
+
+        //Advance time
+        this.TimeAtEpoch = OrbitalHelper.advanceTime(this.TimeAtEpoch, this.TimeStep, this.Clockwise, this.OrbitType);
+
+    }
 }
 
 
@@ -1165,8 +1211,6 @@ public class GravityElementsClass
     //This behavior is shared by all gravity bound objects
     public Vector2 calculateLocalPositionAtFutureTime(double timeStep)
     {
-        //Adjust tranformation vector
-        Vector2 globalTransformationVector = massiveBody.transform.position;
 
         //Calculate time at epoch
         double timeAtEpoch = OrbitalHelper.advanceTime(this.timeAtEpoch, timeStep, clockwise, orbitType);
@@ -1228,5 +1272,51 @@ public class GravityElementsClass
 
         //Im returning the position here, you know, just in case you couldnt figure it out on your own
         return new Tuple<Vector2, Vector2>(position, velocity);
+    }
+
+    public void advanceToFutureState(double time)
+    {
+        //update timestep
+        this.TimeStep = time;
+
+        //Adjust tranformation vector
+        this.GlobalTransformationVector = this.MassiveBody.transform.position;
+
+        //Calculate next meanAnomaly
+        this.MeanAnomaly = OrbitalHelper.calculateMeanAnomaly(this.Eccentricity, this.SemiMajorAxis, this.AnomalyAtEpoch,
+            this.TimeStep, this.TimeAtEpoch, this.Clockwise, this.Mu, this.OrbitType);
+
+        //Calculate Eccentric Anomaly
+        this.EccentricAnomaly = OrbitalHelper.calculateEccentricAnomaly(this.Eccentricity, this.SemiMajorAxis, GlobalElements.GRAV_CONST, this.TimeStep, this.TimeAtEpoch,
+            this.MeanAnomaly, this.EccentricAnomaly, this.Mu, this.Clockwise, this.OrbitType);
+
+        //CalculateTrueAnomaly
+        this.TrueAnomaly = OrbitalHelper.calculateTrueAnomaly(this.Eccentricity, this.EccentricAnomaly, this.MeanAnomaly, this.OrbitType);
+
+        //Calculate Altitude
+        this.Altitude = OrbitalHelper.calculateAltitude(this.Eccentricity, this.SemiMajorAxis, this.SemiLatusRectum, this.TrueAnomaly, this.OrbitType);
+
+        //Calculate positionVector
+        this.Position = OrbitalHelper.calculatePosition(this.Perigee, this.TrueAnomaly, this.GlobalRotationAngle, this.Altitude, this.OrbitType);
+
+        //Are we going towards the perigee?
+        this.TowardsPerigee = OrbitalHelper.towardsPerigeeOrbit(this.MeanAnomaly, this.Clockwise);
+
+        //Calculate velocity angle
+        this.VelocityAngle = OrbitalHelper.calculateVelocityAngle(this.Position, this.Eccentricity, this.SemiMajorAxis,
+            this.TrueAnomaly, this.GlobalRotationAngle, this.Clockwise, this.TowardsPerigee, this.OrbitType);
+
+        //Calculate Speed
+        this.Speed = OrbitalHelper.calculateSpeed(this.Position, this.SemiMajorAxis, this.Mu, this.OrbitType);
+
+        //Calculate Velocity
+        this.velocity = OrbitalHelper.assembleVelocityVector(this.VelocityAngle, this.Speed);
+
+        //advance epoch
+        this.AnomalyAtEpoch = this.MeanAnomaly;
+
+        //Advance time
+        this.TimeAtEpoch = OrbitalHelper.advanceTime(this.TimeAtEpoch, this.TimeStep, this.Clockwise, this.OrbitType);
+
     }
 }

@@ -16,16 +16,18 @@ public class Encounters : MonoBehaviour {
 
 public class Encounter
 {
-    public Encounter(GravityElementsClass gravElements, double startingTrueAnomaly, double endingTrueAnomaly)
+    public Encounter(GravityElementsClass gravElements, double startingTrueAnomaly, double endingTrueAnomaly, double timeOfEncounter)
     {
         this.gravElements = gravElements;
         this.startingTrueAnomaly = startingTrueAnomaly;
         this.endingTrueAnomaly = endingTrueAnomaly;
+        this.timeOfEncounter = timeOfEncounter;
     }
 
     private GravityElementsClass gravElements;
     private double startingTrueAnomaly;
     private double endingTrueAnomaly;
+    private double timeOfEncounter;
 
 
     public GravityElementsClass GravElements
@@ -38,6 +40,19 @@ public class Encounter
         set
         {
             gravElements = value;
+        }
+    }
+
+    public double TimeOfEncounter
+    {
+        get
+        {
+            return timeOfEncounter;
+        }
+
+        set
+        {
+            timeOfEncounter = value;
         }
     }
 
