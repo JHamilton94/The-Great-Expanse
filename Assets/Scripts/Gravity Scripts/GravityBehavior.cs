@@ -29,7 +29,7 @@ public class GravityBehavior : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    protected void FixedUpdate()
     {
         //change spheres of influence
         changeSpheresOfInfluence(this.transform.position, gravityElements.velocity, gravityElements.massiveBody);

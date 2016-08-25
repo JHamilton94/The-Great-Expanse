@@ -37,7 +37,6 @@ public class ShipPatchedConics : MonoBehaviour
     void Start()
     {
         shipElements = GetComponent<GravityElements>();
-        Debug.Log("Starting true anomaly: " + shipElements.TrueAnomaly);
         encounters = GetComponent<Encounters>();
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
@@ -52,6 +51,7 @@ public class ShipPatchedConics : MonoBehaviour
         foreach (Encounter encounter in encounters.predictedEncounters)
         {
             encounter.GravElements.GlobalTransformationVector = encounter.GravElements.massiveBody.transform.position;
+            
         }
 
         foreach (Encounter encounter in encounters.maneuverEncounters)
@@ -64,13 +64,19 @@ public class ShipPatchedConics : MonoBehaviour
         foreach (Encounter encounter in encounters.predictedEncounters)
         {
             drawPatchedConics(encounter, Color.red);
+            displayOrbitalPOI(encounter, Color.red);
         }
 
         foreach (Encounter encounter in encounters.maneuverEncounters)
         {
-            
             drawPatchedConics(encounter, Color.cyan);
+            displayOrbitalPOI(encounter, Color.red);
         }
+
+    }
+
+    private void displayOrbitalPOI(Encounter encounter, Color color)
+    {
 
     }
 
@@ -163,7 +169,6 @@ public class ShipPatchedConics : MonoBehaviour
 
         //initial setup
         GravityElementsClass currentShipsGravityElements = shipElements.getClassVersion();
-        Debug.Log("Current true anomaly: " + currentShipsGravityElements.TrueAnomaly);
         
         double startingTrueAnomaly = shipElements.TrueAnomaly;
 
@@ -172,15 +177,6 @@ public class ShipPatchedConics : MonoBehaviour
         iterations = 0;
 
         predictAnEncounter(currentEncounter, ref encounters.predictedEncounters);
-
-        foreach (Encounter encounter in encounters.predictedEncounters)
-        {
-            Debug.Log(encounter.GravElements.massiveBody.name);
-            Debug.Log("Encounter entrance: " + encounter.StartingTrueAnomaly);
-            Debug.Log("Encounter exit: " + encounter.EndingTrueAnomaly);
-            Debug.Log("Clockwise: " + encounter.GravElements.Clockwise);
-        }
-
     }
 
     //Takes in the ships current gravity elements according to its last encounter, current massive body elements as they are at tiem 0 and current massivebodyelements as they are at time 0 
@@ -372,17 +368,5 @@ public class ShipPatchedConics : MonoBehaviour
             gravityElements.Clockwise, gravityElements.TowardsPerigee, gravityElements.OrbitType);
 
         return gravityElements;
-    }
-
-    public void OnDrawGizmos()
-    {
-        
-        foreach (Encounter encounter in encounters.predictedEncounters)
-        {
-            Gizmos.color = Color.magenta;
-            Gizmos.DrawLine(encounter.GravElements.GlobalTransformationVector, encounter.GravElements.GlobalTransformationVector + encounter.GravElements.Eccentricity);
-            
-
-        }
     }
 }

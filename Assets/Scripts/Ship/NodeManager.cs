@@ -13,6 +13,7 @@ public class NodeManager : MonoBehaviour {
 
     //What we're making here
     public Node node;
+    private GameObject currentMassiveBody;
     
 	// Input data
     private float hoverDistanceTolerance;
@@ -42,14 +43,25 @@ public class NodeManager : MonoBehaviour {
         ship = GetComponent<ShipGravityBehavior>();
         lineDrawer = GetComponentInChildren<LineDrawer>();
         patchedConics = GetComponent<ShipPatchedConics>();
-        
+
+        currentMassiveBody = shipElements.massiveBody;
+
         hoverDistanceTolerance = 1f;
         hovering = false;
         lastTrueAnomaly = shipElements.TrueAnomaly;
         thrustVector = new Vector2(0, 0);
+
     }
 
 	void FixedUpdate () {
+
+        //detect soi change
+        if (currentMassiveBody.name != shipElements.massiveBody.name)
+        {
+            currentMassiveBody = shipElements.massiveBody;
+            node = null;
+            patchedConics.clearPotentialEncounters();
+        }
 
         //Have we arrived at a node?
         if (node != null)
@@ -112,8 +124,7 @@ public class NodeManager : MonoBehaviour {
         //position node
         float width = nodePlacard.rectTransform.rect.width * nodePlacard.transform.localScale.x;
         float height = nodePlacard.rectTransform.rect.height * nodePlacard.transform.localScale.y;
-        double trueAnomaly = Math.Atan2(node.getNodePosition().y, node.getNodePosition().x) -
-            Math.Atan2(shipElements.Eccentricity.y, shipElements.Eccentricity.x);
+        double trueAnomaly = MiscHelperFuncs.AngleBetweenVector2(shipElements.Eccentricity, node.getNodePosition());
         if (trueAnomaly > Math.PI)
         {
             trueAnomaly -= 2 * Math.PI;
