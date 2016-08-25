@@ -4,13 +4,13 @@ using System.Collections.Generic;
 
 public class Encounters : MonoBehaviour {
 
-    public Queue<Encounter> predictedEncounters;
-    public Queue<Encounter> maneuverEncounters;
+    public List<Encounter> predictedEncounters;
+    public List<Encounter> maneuverEncounters;
 
 	// Use this for initialization
 	void Start () {
-        predictedEncounters = new Queue<Encounter>();
-        maneuverEncounters = new Queue<Encounter>();
+        predictedEncounters = new List<Encounter>();
+        maneuverEncounters = new List<Encounter>();
 	}
 }
 

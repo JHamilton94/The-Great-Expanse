@@ -533,14 +533,28 @@ public static class OrbitalHelper {
             case OrbitTypes.elliptical:
                 returnTrueAnomaly = Vector2.Angle(eccentricity, position);
                 returnTrueAnomaly = MiscHelperFuncs.convertToRadians(returnTrueAnomaly);
-                if (towardsPerigee)
-                {
-                    returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);
+                if (clockwise)                                                      //Copied this section from the hyperbolic section, I havent fully tested it but it looks ok
+                {                                                                   // 
+                    if (towardsPerigee)                                             //
+                    {
+                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);            //
+                    }
+                    else
+                    {
+                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);           //
+                    }
                 }
                 else
                 {
-                    returnTrueAnomaly = Math.Abs(returnTrueAnomaly);
-                }
+                    if (towardsPerigee)
+                    {
+                        returnTrueAnomaly = -Math.Abs(returnTrueAnomaly);           //
+                    }
+                    else
+                    {
+                        returnTrueAnomaly = Math.Abs(returnTrueAnomaly);            //
+                    }
+                }                                                                   //End
 
                 break;
             case OrbitTypes.parabolic:

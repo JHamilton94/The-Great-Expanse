@@ -49,4 +49,10 @@ public static class MiscHelperFuncs {
         //Debug.Log("Return angle: " + angle);
         return angle;
     }
+
+    public static double AngleBetweenVector2(Vector2 source, Vector2 target)
+    {
+        return (Mathf.DeltaAngle(Mathf.Atan2(source.y, source.x) * Mathf.Rad2Deg,
+                                Mathf.Atan2(target.y, target.x) * Mathf.Rad2Deg)) * (Mathf.PI/180);
+    }
 }
