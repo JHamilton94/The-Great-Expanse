@@ -58,9 +58,7 @@ public class NodeManager : MonoBehaviour {
         //detect soi change
         if (currentMassiveBody.name != shipElements.massiveBody.name)
         {
-            currentMassiveBody = shipElements.massiveBody;
-            node = null;
-            patchedConics.clearPotentialEncounters();
+            deleteNode();
         }
 
         //Have we arrived at a node?
@@ -109,6 +107,13 @@ public class NodeManager : MonoBehaviour {
         //do something
         lastTrueAnomaly = shipElements.TrueAnomaly;
 	}
+
+    public void deleteNode()
+    {
+        currentMassiveBody = shipElements.massiveBody;
+        node = null;
+        patchedConics.clearPotentialEncounters();
+    }
 
 	private void executeManeuver() {
 		Debug.LogWarning("need to implement edge case");

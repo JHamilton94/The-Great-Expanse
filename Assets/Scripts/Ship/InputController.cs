@@ -32,6 +32,11 @@ public class InputController : MonoBehaviour
         {
             nodeManager.createManeuver(Camera.main.ScreenToWorldPoint(Input.mousePosition));
         }
+        //deleting node
+        if (Input.GetButton("RightClick"))
+        {
+            nodeManager.deleteNode();
+        }
 
         //Time manipulation
         if (Input.GetButton("Fire2"))

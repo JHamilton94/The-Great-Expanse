@@ -16,19 +16,48 @@ public class Encounters : MonoBehaviour {
 
 public class Encounter
 {
-    public Encounter(GravityElementsClass gravElements, double startingTrueAnomaly, double endingTrueAnomaly, double timeOfEncounter)
+    public Encounter(GravityElementsClass gravElements, double startingTrueAnomaly, double endingTrueAnomaly, double timeOfEncounter, OrbitalPOI perigeeIcon)
     {
         this.gravElements = gravElements;
         this.startingTrueAnomaly = startingTrueAnomaly;
         this.endingTrueAnomaly = endingTrueAnomaly;
         this.timeOfEncounter = timeOfEncounter;
+        this.perigeeIcon = perigeeIcon;
     }
+
+    private OrbitalPOI perigeeIcon;
+    private OrbitalPOI apogeeIcon;
 
     private GravityElementsClass gravElements;
     private double startingTrueAnomaly;
     private double endingTrueAnomaly;
     private double timeOfEncounter;
 
+
+    public OrbitalPOI ApogeeIcon
+    {
+        get
+        {
+            return apogeeIcon;
+        }
+
+        set
+        {
+            apogeeIcon = value;
+        }
+    }
+    public OrbitalPOI PerigeeIcon
+    {
+        get
+        {
+            return perigeeIcon;
+        }
+
+        set
+        {
+            perigeeIcon = value;
+        }
+    }
 
     public GravityElementsClass GravElements
     {

@@ -34,6 +34,13 @@ public class ShipPatchedConics : MonoBehaviour
     private int iterations;
     private int MAX_ITERATIONS = 3;
 
+    //Prefabs
+    public GameObject perigeeIcon;
+    public GameObject apogeeIcon;
+
+    List<GameObject> perigeeIcons;
+    List<GameObject> apogeeIcons;
+
     void Start()
     {
         shipElements = GetComponent<GravityElements>();
@@ -41,6 +48,9 @@ public class ShipPatchedConics : MonoBehaviour
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
         lineDrawer = GetComponentInChildren<LineDrawer>();
+
+        perigeeIcons = new List<GameObject>();
+        apogeeIcons = new List<GameObject>();
 
         updateEncounters();
     }
@@ -64,20 +74,24 @@ public class ShipPatchedConics : MonoBehaviour
         foreach (Encounter encounter in encounters.predictedEncounters)
         {
             drawPatchedConics(encounter, Color.red);
-            displayOrbitalPOI(encounter, Color.red);
+            positionOrbitalPOI(encounter, Color.red);
         }
 
         foreach (Encounter encounter in encounters.maneuverEncounters)
         {
             drawPatchedConics(encounter, Color.cyan);
-            displayOrbitalPOI(encounter, Color.red);
+            positionOrbitalPOI(encounter, Color.cyan);
+
         }
 
     }
 
-    private void displayOrbitalPOI(Encounter encounter, Color color)
+    private void positionOrbitalPOI(Encounter encounter, Color color)
     {
-
+        //update scale
+        encounter.PerigeeIcon.setScale(new Vector2(GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST / 2, GlobalElements.zoomLevel / GlobalElements.UI_SCALE_CONST / 2));
+        
+        encounter.PerigeeIcon.getPoiIcon().transform.position = encounter.GravElements.GlobalTransformationVector + encounter.PerigeeIcon.getLocalPosition() + encounter.PerigeeIcon.getOffsetVector();
     }
 
     private Vector2 drawOrbitRadiusHelper(Vector2 eccentricity, double globalRotationAngle, double semiMajorAxis, double trueAnomaly)
@@ -164,7 +178,10 @@ public class ShipPatchedConics : MonoBehaviour
     //Finds all encounters within one orbit of the craft
     public void updateEncounters()
     {
-
+        foreach (Encounter encounter in encounters.predictedEncounters)
+        {
+            Destroy(encounter.PerigeeIcon.poiIcon);
+        }
         encounters.predictedEncounters.Clear();
 
         //initial setup
@@ -172,11 +189,21 @@ public class ShipPatchedConics : MonoBehaviour
         
         double startingTrueAnomaly = shipElements.TrueAnomaly;
 
-        Encounter currentEncounter = new Encounter(currentShipsGravityElements, startingTrueAnomaly, double.PositiveInfinity, 0);
+        GameObject tempPerigeeIcon = Instantiate(perigeeIcon);
+        OrbitalPOI perigeePOI = new OrbitalPOI(tempPerigeeIcon, currentShipsGravityElements.Perigee);
+
+        Encounter currentEncounter = new Encounter(currentShipsGravityElements, startingTrueAnomaly, double.PositiveInfinity, 0, perigeePOI);
 
         iterations = 0;
 
         predictAnEncounter(currentEncounter, ref encounters.predictedEncounters);
+
+        instantiatePOIs(encounters.predictedEncounters);
+    }
+
+    private void instantiatePOIs(List<Encounter> encounters)
+    {
+        
     }
 
     //Takes in the ships current gravity elements according to its last encounter, current massive body elements as they are at tiem 0 and current massivebodyelements as they are at time 0 
@@ -259,14 +286,14 @@ public class ShipPatchedConics : MonoBehaviour
         double endingTrueAnomaly = MiscHelperFuncs.AngleBetweenVector2(currentEncounter.GravElements.Eccentricity, shipPredictedLocalPosition);
             
         encounters[encounters.Count - 1].EndingTrueAnomaly = endingTrueAnomaly;
-        
-        Encounter newEncounter = new Encounter(newShipsGravityElements, startingTrueAnomaly, double.PositiveInfinity, time + currentEncounter.TimeOfEncounter);
-
-        lineDrawer.DrawLine(newEncounter.GravElements.GlobalTransformationVector, newEncounter.GravElements.GlobalTransformationVector + shipPositionRelativeToEncounter, Color.green);
-        lineDrawer.DrawLine(currentEncounter.GravElements.GlobalTransformationVector, currentEncounter.GravElements.GlobalTransformationVector + shipPredictedLocalPosition, Color.cyan);
 
         if (iterations < MAX_ITERATIONS)
         {
+            GameObject tempPerigeeIcon = Instantiate(perigeeIcon);
+            OrbitalPOI perigeePOI = new OrbitalPOI(tempPerigeeIcon, newShipsGravityElements.Perigee);
+
+            Encounter newEncounter = new Encounter(newShipsGravityElements, startingTrueAnomaly, double.PositiveInfinity, time + currentEncounter.TimeOfEncounter, perigeePOI);
+
             predictAnEncounter(newEncounter, ref encounters);
         }
         
@@ -274,10 +301,19 @@ public class ShipPatchedConics : MonoBehaviour
     
     public void updatePotentialEncounters(GravityElementsClass newManeuver)
     {
+        foreach(Encounter encounter in encounters.maneuverEncounters)
+        {
+            Destroy(encounter.PerigeeIcon.poiIcon);
+        }
         encounters.maneuverEncounters.Clear();
 
+
+
         //initial setup
-        Encounter currentEncounter = new Encounter(newManeuver, newManeuver.TrueAnomaly, double.PositiveInfinity, 0);
+        GameObject tempPerigeeIcon = Instantiate(perigeeIcon);
+        OrbitalPOI perigeePOI = new OrbitalPOI(tempPerigeeIcon, newManeuver.Perigee);
+
+        Encounter currentEncounter = new Encounter(newManeuver, newManeuver.TrueAnomaly, double.PositiveInfinity, 0, perigeePOI);
 
         iterations = 0;
 
@@ -286,6 +322,10 @@ public class ShipPatchedConics : MonoBehaviour
 
     public void clearPotentialEncounters()
     {
+        foreach (Encounter encounter in encounters.maneuverEncounters)
+        {
+            Destroy(encounter.PerigeeIcon.poiIcon);
+        }
         encounters.maneuverEncounters.Clear();
     }
 

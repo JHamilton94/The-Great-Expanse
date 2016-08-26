@@ -3294,6 +3294,8 @@ MonoBehaviour:
   apogeeButton: {fileID: 2108371807}
   apogeePlacard: {fileID: 130337894}
   encounterIconPrefab: {fileID: 114706, guid: 4c5247a5707652d44bd6824fe66a24f7, type: 2}
+  perigeeIcon: {fileID: 171628, guid: 92fac58a8e042f947b34f754b9e9634a, type: 2}
+  apogeeIcon: {fileID: 143642, guid: 19718d31fe6022241971078c43ec5206, type: 2}
 --- !u!1 &1461878758
 GameObject:
   m_ObjectHideFlags: 0
