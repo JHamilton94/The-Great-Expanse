@@ -118,7 +118,7 @@ InputManager:
     axis: 2
     joyNum: 0
   - serializedVersion: 3
-    m_Name: RightCLick
+    m_Name: RightClick
     descriptiveName: 
     descriptiveNegativeName: 
     negativeButton: 
